@@ -103,7 +103,7 @@ install.packages("minxent") Minxent n'est plus maintenu dans le CRAN, c'est pour
      pi_solve <- (q * exp(-lambda0) * exp(-lambda %*% G[-1, ]))
      list(Langrangians= c(lambda0,lambda) , Estimates=pi_solve)
  }
- 
+
  minxent.multiple_pov<-function (q, G, eta,lambda)
  {
  fk<-function (lambda, q, G, eta)
@@ -116,8 +116,8 @@ install.packages("minxent") Minxent n'est plus maintenu dans le CRAN, c'est pour
       lambda0<-log(sum(q*exp(-lambda%*%G[-1,])))
       -lambda0 - sum(lambda*eta[-1])
  }
-    iter_general <- 0 
-    max_iter_general <- 1
+    iter_general <- 0
+    max_iter_general <- 1000
      common_ratio<-1/2
 
      lambda0 <- log(sum(q * exp(-lambda * G[-1, ])))
@@ -131,12 +131,12 @@ install.packages("minxent") Minxent n'est plus maintenu dans le CRAN, c'est pour
          pg <- c(q * exp(-lambda0) * exp(-lambda_old %*% G[-1,
              ]))
 #         cov.ent <- cov.wt(t(G), wt = pg, method = "ML", cor = FALSE)
-#         hess.ent <- cov.ent$cov 
+#         hess.ent <- cov.ent$cov
 #         W <- hess.ent[-1, -1]
 #         Go <- solve(W)
 #         lambda <- lambda_old + f_old[, -1] %*% Go
-  
-         alpha<-1 
+
+         alpha<-1
          alpha_new<-1
          lambda<- lambda_old
          lambda_new<- lambda
@@ -173,7 +173,7 @@ install.packages("minxent") Minxent n'est plus maintenu dans le CRAN, c'est pour
 On charge les données
 
  ```{r data-download}
- pop_synt_all<-read_feather("~/Téléchargements/pop_synt_ipondi_TRS_pvm.feather") %>%
+ pop_synt_all<-read_feather("~/Downloads/pop_synt_ipondi_TRS_pvm.feather") %>%
   as.data.frame()
   pop_synt_men<-pop_synt_all%>%
     mutate(LPRM=as.character(LPRM))%>%
@@ -223,7 +223,7 @@ pop_synt_men$SFM_agg<- case_when(pop_synt_men$SFMb=="11"|pop_synt_men$SFMb== "12
                                  pop_synt_men$SFMb=="62" ~ "ATM",
                                  pop_synt_men$SFMb=="70" ~ "ATM")
 
-# 
+#
 # pop_synt_men$SFM_agg<- case_when(pop_synt_men$SFMb=="11"|pop_synt_men$SFMb== "12" ~ "PS",
 #                                  pop_synt_men$SFMb=="21"|pop_synt_men$SFMb=="22"|pop_synt_men$SFMb=="40"~ "PS",
 #                                  pop_synt_men$SFMb=="30"|pop_synt_men$SFMb=="51"|pop_synt_men$SFMb=="52" ~ "PS",
@@ -364,9 +364,9 @@ pop_synt_men$prof<-case_when(pop_synt_men$CS1_rec=="Autre" & pop_synt_men$TACT =
 # pop_synt_men$CS1_rec[pop_synt_men$CS1 == "6"] <- "Empl"
 # pop_synt_men$CS1_rec[pop_synt_men$CS1 == "7"] <- "Empl"
 # pop_synt_men$CS1_rec[pop_synt_men$CS1 == "8"] <- "Autre"
-# 
+#
 # pop_synt_men$TACT<-as.character(pop_synt_men$TACT)
-# 
+#
 # pop_synt_men$prof<-case_when(pop_synt_men$CS1_rec=="Autre" & pop_synt_men$TACT == "12" ~ "Autres_inac",
 #                              pop_synt_men$CS1_rec=="Autre" & pop_synt_men$TACT == "22" ~ "Autres_inac",
 #                              pop_synt_men$CS1_rec=="Autre" & pop_synt_men$TACT == "21" ~ "Autres_inac",
@@ -484,10 +484,10 @@ donnees_aggr[c(2:8),]<-SFM_ag
 donnees_aggr[(9:13),]<-Age_ag
 donnees_aggr[(14:15),]<-Sex_ag
 donnees_aggr[(16:25),]<-Prof_ag
-donnees_aggr[c(2:6),]<-SFM_ag
-donnees_aggr[(7:11),]<-Age_ag
-donnees_aggr[(12:13),]<-Sex_ag
-donnees_aggr[(14:23),]<-Prof_ag
+#donnees_aggr[c(2:6),]<-SFM_ag
+#donnees_aggr[(7:11),]<-Age_ag
+#donnees_aggr[(12:13),]<-Sex_ag
+#donnees_aggr[(14:23),]<-Prof_ag
 
 #donnees_aggr[c(2:6),]<-SFM_ag
 #donnees_aggr[(7:9),]<-Age_ag
@@ -791,12 +791,12 @@ J'ai essayé de jouer sur les valeurs initiales des multiplicateurs de Lagranges
 En conclusion, il faut passer à autre chose que minxent comme ce que nous avons fait avec Tellae sous Python
 
 ### Test 17 OCTOBRE
-j'ai modifié la fonction minxent en minxent.pov, les résultats sont OK : 
+j'ai modifié la fonction minxent en minxent.pov, les résultats sont OK :
 
-* Je suis parti du cas 
-  ** 3 structures familales : ATM CAE1 PS, 
-  ** 3 catégories d'age, 
-  ** 2 pour la catégorie sexe, 
+* Je suis parti du cas
+  ** 3 structures familales : ATM CAE1 PS,
+  ** 3 catégories d'age,
+  ** 2 pour la catégorie sexe,
   ** 2 pour la catégorie Profession  
   ** 2 modalités pour les voitures
 
@@ -805,11 +805,11 @@ j'ai modifié la fonction minxent en minxent.pov, les résultats sont OK :
 10 marginaux
 
 
-* étape suivante : 
+* étape suivante :
   la totale
 
 ### A Faire
-*  problème sur le test comple 
+*  problème sur le test comple
 > compare
 [1] 0.6540031 0.7403210
 => l'aggrégation n'est pas bien calculé
@@ -834,4 +834,11 @@ Sortie=minxent.multiple_pov(q=p_init,G=Mom[I,],eta=Eta[I],lambda=c(rep(0, length
 Sortie
 result$soln[1:mc]
 proba_jointes2[,"proba"]
+```
+```{r check-solution-consistent-with-constraints}
+Eta_computed_with_entropy = Mom%*%matrix(Sortie$Estimates,ncol=1,nrow=length(Sortie$Estimates))
+compare = c(norm(Eta-Eta_computed_with_initial_proba)/norm(Eta), norm(Eta-Eta_computed_with_entropy)/norm(Eta))
+compare_termbyterm = cbind(Eta_computed_with_initial_proba, Eta, Eta_computed_with_entropy )
+compare
+compare_termbyterm
 ```
