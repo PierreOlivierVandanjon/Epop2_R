@@ -1,7 +1,7 @@
 ---
 title: "Epop2"
 author:
- -  Boyam Fabrice Yaméogo
+  - Boyam Fabrice Yaméogo
   - Pierre-Olivier Vandanjon
 date: "14/10/2022"
 output: html_document
@@ -103,11 +103,71 @@ install.packages("minxent") Minxent n'est plus maintenu dans le CRAN, c'est pour
      pi_solve <- (q * exp(-lambda0) * exp(-lambda %*% G[-1, ]))
      list(Langrangians= c(lambda0,lambda) , Estimates=pi_solve)
  }
+ 
+ minxent.multiple_pov<-function (q, G, eta,lambda)
+ {
+ fk<-function (lambda, q, G, eta)
+ {
+      lambda0<-log(sum(q*exp(-lambda%*%G[-1,])))
+      (q * exp(-lambda0)*exp(-lambda %*% G[-1,]))%*% t(G) - eta
+ }
+ objective<-function (lambda, q, G, eta)
+ {
+      lambda0<-log(sum(q*exp(-lambda%*%G[-1,])))
+      -lambda0 - sum(lambda*eta[-1])
+ }
+     common_ratio<-1/2
+
+     lambda0 <- log(sum(q * exp(-lambda * G[-1, ])))
+     repeat {
+         lambda_old <- lambda
+         lambda0 <- log(sum(q * exp(-lambda_old %*% G[-1, ])))
+         f_old = fk(lambda_old, q = q, G = G, eta = eta)
+         dev.ent <- (q * exp(-lambda0) * exp(-lambda_old %*% G[-1,
+             ])) %*% t(G)
+         pg <- c(q * exp(-lambda0) * exp(-lambda_old %*% G[-1,
+             ]))
+         cov.ent <- cov.wt(t(G), wt = pg, method = "ML", cor = FALSE)
+#         hess.ent <- cov.ent$cov 
+#         W <- hess.ent[-1, -1]
+#         Go <- solve(W)
+#         lambda <- lambda_old + f_old[, -1] %*% Go
+  
+         alpha<-1 
+         alpha_new<-1
+         lambda<- lambda_old
+         lambda_new<- lambda
+         level_objective<-objective(lambda_old, q = q, G = G, eta = eta)
+         level_objective_new<-level_objective
+         repeat {
+          lambda  <- lambda_old + alpha*f_old[, -1]
+          level_objective_new<-objective(lambda_new, q = q, G = G, eta = eta)
+          if (level_objective_new>level_objective )  {
+            alpha <- common_ratio*alpha
+            lambda<-lambda_olf
+            }
+          else {
+            level_objective<-level_objective_new
+            break
+            }
+          if (alpha < 1e-08)
+            break
+         }
+
+         if (max(abs(lambda - lambda_old)) < 1e-08)
+             break
+     }
+     out.lj <- list(estimates = lambda)
+     lambda <- out.lj$estimates
+     lambda0 <- log(sum(q * exp(-lambda %*% G[-1, ])))
+     pi_solve <- (q * exp(-lambda0) * exp(-lambda %*% G[-1, ]))
+     list(Langrangians= c(lambda0,lambda) , Estimates=pi_solve)
+ }
  ```
 On charge les données
 
  ```{r data-download}
- pop_synt_all<-read_feather("/data/pop_synt_ipondi_TRS_pvm.feather") %>%
+ pop_synt_all<-read_feather("~/Téléchargements/pop_synt_ipondi_TRS_pvm.feather") %>%
   as.data.frame()
   pop_synt_men<-pop_synt_all%>%
     mutate(LPRM=as.character(LPRM))%>%
@@ -123,7 +183,7 @@ On charge les données
 
  Recodage des variables
 
-##1) Structure familiale (variable SFM_agg)
+## 1) Structure familiale (variable SFM_agg)
 
 ### PS : Personne seule
 ### FM : Famille monoparentale
@@ -723,14 +783,41 @@ J'ai essayé de jouer sur les valeurs initiales des multiplicateurs de Lagranges
 
 En conclusion, il faut passer à autre chose que minxent comme ce que nous avons fait avec Tellae sous Python
 
+### Test 17 OCTOBRE
+j'ai modifié la fonction minxent en minxent.pov, les résultats sont OK : 
+
+* Je suis parti du cas 
+  ** 3 structures familales : ATM CAE1 PS, 
+  ** 3 catégories d'age, 
+  ** 2 pour la catégorie sexe, 
+  ** 2 pour la catégorie Profession  
+  ** 2 modalités pour les voitures
+
+72 probabilité à prévoir
+36 fréquences joints
+10 marginaux
+
+
+* étape suivante : 
+  la totale
+
+### A Faire
+
+* Utiliser Goodness of Fit pour calculer la distance à la probabilité solution
+
+* Utiliser  Kullback Leibler pour calculer la distance à la proba solution
+
+* Utiliser une distance vue pendant l'école d'été transport optimal
+
+
 ```{r true-probability-lenght}
 length(proba_jointes2[,"proba"])
 ```
 ```{r entropy-maximisation}
 p_init=rep(as.double(1/n_variable_of_interest), n_variable_of_interest)
-p_init=proba_jointes2[,"proba"]
+#p_init=proba_jointes2[,"proba"]
 #p_init=result$soln[1:mc]
-Sortie=minxent.multiple(q=p_init,G=Mom[I,],eta=Eta[I],lambda=c(rep(0, length(I)-1)))
+Sortie=minxent.multiple_pov(q=p_init,G=Mom[I,],eta=Eta[I],lambda=c(rep(0, length(I)-1)))
 Sortie
 result$soln[1:mc]
 proba_jointes2[,"proba"]
