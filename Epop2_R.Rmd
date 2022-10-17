@@ -217,29 +217,29 @@ pop_synt_men$SFM_agg<- case_when(pop_synt_men$SFMb=="11"|pop_synt_men$SFMb== "12
                                  pop_synt_men$SFMb=="62" ~ "ATM",
                                  pop_synt_men$SFMb=="70" ~ "ATM")
 
-
-pop_synt_men$SFM_agg<- case_when(pop_synt_men$SFMb=="11"|pop_synt_men$SFMb== "12" ~ "PS",
-                                 pop_synt_men$SFMb=="21"|pop_synt_men$SFMb=="22"|pop_synt_men$SFMb=="40"~ "PS",
-                                 pop_synt_men$SFMb=="30"|pop_synt_men$SFMb=="51"|pop_synt_men$SFMb=="52" ~ "PS",
-                                 pop_synt_men$SFMb=="61"& pop_synt_men$NENFRb=="0" ~ "PS",
-                                 pop_synt_men$SFMb=="31"~ "CAE1",
-                                 pop_synt_men$SFMb=="53"& pop_synt_men$NENFRb=="1"~ "CAE1",
-                                 pop_synt_men$SFMb=="54"& pop_synt_men$NENFRb=="1"~ "CAE1",
-                                 pop_synt_men$SFMb=="61"& pop_synt_men$NENFRb=="1"~ "CAE1",
-                                 pop_synt_men$SFMb=="32"~ "CAE1",
-                                 pop_synt_men$SFMb=="53"& pop_synt_men$NENFRb=="2"~ "CAE1",
-                                 pop_synt_men$SFMb=="54"& pop_synt_men$NENFRb=="2"~ "CAE1",
-                                 pop_synt_men$SFMb=="61"& pop_synt_men$NENFRb=="2"~ "CAE1",
-                                 pop_synt_men$SFMb=="33"~ "CAE1",
-                                 pop_synt_men$SFMb=="34"~ "CAE1",
-                                 pop_synt_men$SFMb=="53"& pop_synt_men$NENFRb=="3"~ "CAE1",
-                                 pop_synt_men$SFMb=="53"& pop_synt_men$NENFRb=="4"~ "CAE1",
-                                 pop_synt_men$SFMb=="54"& pop_synt_men$NENFRb=="3"~ "CAE1",
-                                 pop_synt_men$SFMb=="54"& pop_synt_men$NENFRb=="4"~ "CAE1",
-                                 pop_synt_men$SFMb=="61"& pop_synt_men$NENFRb=="3"~ "CAE1",
-                                 pop_synt_men$SFMb=="61"& pop_synt_men$NENFRb=="4"~ "CAE1",
-                                 pop_synt_men$SFMb=="62" ~ "ATM",
-                                 pop_synt_men$SFMb=="70" ~ "ATM")
+# 
+# pop_synt_men$SFM_agg<- case_when(pop_synt_men$SFMb=="11"|pop_synt_men$SFMb== "12" ~ "PS",
+#                                  pop_synt_men$SFMb=="21"|pop_synt_men$SFMb=="22"|pop_synt_men$SFMb=="40"~ "PS",
+#                                  pop_synt_men$SFMb=="30"|pop_synt_men$SFMb=="51"|pop_synt_men$SFMb=="52" ~ "PS",
+#                                  pop_synt_men$SFMb=="61"& pop_synt_men$NENFRb=="0" ~ "PS",
+#                                  pop_synt_men$SFMb=="31"~ "CAE1",
+#                                  pop_synt_men$SFMb=="53"& pop_synt_men$NENFRb=="1"~ "CAE1",
+#                                  pop_synt_men$SFMb=="54"& pop_synt_men$NENFRb=="1"~ "CAE1",
+#                                  pop_synt_men$SFMb=="61"& pop_synt_men$NENFRb=="1"~ "CAE1",
+#                                  pop_synt_men$SFMb=="32"~ "CAE1",
+#                                  pop_synt_men$SFMb=="53"& pop_synt_men$NENFRb=="2"~ "CAE1",
+#                                  pop_synt_men$SFMb=="54"& pop_synt_men$NENFRb=="2"~ "CAE1",
+#                                  pop_synt_men$SFMb=="61"& pop_synt_men$NENFRb=="2"~ "CAE1",
+#                                  pop_synt_men$SFMb=="33"~ "CAE1",
+#                                  pop_synt_men$SFMb=="34"~ "CAE1",
+#                                  pop_synt_men$SFMb=="53"& pop_synt_men$NENFRb=="3"~ "CAE1",
+#                                  pop_synt_men$SFMb=="53"& pop_synt_men$NENFRb=="4"~ "CAE1",
+#                                  pop_synt_men$SFMb=="54"& pop_synt_men$NENFRb=="3"~ "CAE1",
+#                                  pop_synt_men$SFMb=="54"& pop_synt_men$NENFRb=="4"~ "CAE1",
+#                                  pop_synt_men$SFMb=="61"& pop_synt_men$NENFRb=="3"~ "CAE1",
+#                                  pop_synt_men$SFMb=="61"& pop_synt_men$NENFRb=="4"~ "CAE1",
+#                                  pop_synt_men$SFMb=="62" ~ "ATM",
+#                                  pop_synt_men$SFMb=="70" ~ "ATM")
 
 
 table(pop_synt_men$SFM_agg)
@@ -279,28 +279,28 @@ pop_synt_men$AGEREVQb_rec[pop_synt_men$AGEREVQb == "105"] <- "cat5"
 pop_synt_men$AGEREVQb_rec[pop_synt_men$AGEREVQb == "115"] <- "cat5"
 
 
-pop_synt_men$AGEREVQb_rec <- pop_synt_men$AGEREVQb
-pop_synt_men$AGEREVQb_rec[pop_synt_men$AGEREVQb == "010"] <- "cat1"
-pop_synt_men$AGEREVQb_rec[pop_synt_men$AGEREVQb == "015"] <- "cat1"
-pop_synt_men$AGEREVQb_rec[pop_synt_men$AGEREVQb == "020"] <- "cat1"
-pop_synt_men$AGEREVQb_rec[pop_synt_men$AGEREVQb == "025"] <- "cat1"
-pop_synt_men$AGEREVQb_rec[pop_synt_men$AGEREVQb == "030"] <- "cat1"
-pop_synt_men$AGEREVQb_rec[pop_synt_men$AGEREVQb == "035"] <- "cat2"
-pop_synt_men$AGEREVQb_rec[pop_synt_men$AGEREVQb == "040"] <- "cat2"
-pop_synt_men$AGEREVQb_rec[pop_synt_men$AGEREVQb == "045"] <- "cat2"
-pop_synt_men$AGEREVQb_rec[pop_synt_men$AGEREVQb == "050"] <- "cat2"
-pop_synt_men$AGEREVQb_rec[pop_synt_men$AGEREVQb == "055"] <- "cat2"
-pop_synt_men$AGEREVQb_rec[pop_synt_men$AGEREVQb == "060"] <- "cat2"
-pop_synt_men$AGEREVQb_rec[pop_synt_men$AGEREVQb == "065"] <- "cat3"
-pop_synt_men$AGEREVQb_rec[pop_synt_men$AGEREVQb == "070"] <- "cat3"
-pop_synt_men$AGEREVQb_rec[pop_synt_men$AGEREVQb == "075"] <- "cat3"
-pop_synt_men$AGEREVQb_rec[pop_synt_men$AGEREVQb == "080"] <- "cat3"
-pop_synt_men$AGEREVQb_rec[pop_synt_men$AGEREVQb == "085"] <- "cat3"
-pop_synt_men$AGEREVQb_rec[pop_synt_men$AGEREVQb == "090"] <- "cat3"
-pop_synt_men$AGEREVQb_rec[pop_synt_men$AGEREVQb == "095"] <- "cat3"
-pop_synt_men$AGEREVQb_rec[pop_synt_men$AGEREVQb == "100"] <- "cat3"
-pop_synt_men$AGEREVQb_rec[pop_synt_men$AGEREVQb == "105"] <- "cat3"
-pop_synt_men$AGEREVQb_rec[pop_synt_men$AGEREVQb == "115"] <- "cat3"
+# pop_synt_men$AGEREVQb_rec <- pop_synt_men$AGEREVQb
+# pop_synt_men$AGEREVQb_rec[pop_synt_men$AGEREVQb == "010"] <- "cat1"
+# pop_synt_men$AGEREVQb_rec[pop_synt_men$AGEREVQb == "015"] <- "cat1"
+# pop_synt_men$AGEREVQb_rec[pop_synt_men$AGEREVQb == "020"] <- "cat1"
+# pop_synt_men$AGEREVQb_rec[pop_synt_men$AGEREVQb == "025"] <- "cat1"
+# pop_synt_men$AGEREVQb_rec[pop_synt_men$AGEREVQb == "030"] <- "cat1"
+# pop_synt_men$AGEREVQb_rec[pop_synt_men$AGEREVQb == "035"] <- "cat2"
+# pop_synt_men$AGEREVQb_rec[pop_synt_men$AGEREVQb == "040"] <- "cat2"
+# pop_synt_men$AGEREVQb_rec[pop_synt_men$AGEREVQb == "045"] <- "cat2"
+# pop_synt_men$AGEREVQb_rec[pop_synt_men$AGEREVQb == "050"] <- "cat2"
+# pop_synt_men$AGEREVQb_rec[pop_synt_men$AGEREVQb == "055"] <- "cat2"
+# pop_synt_men$AGEREVQb_rec[pop_synt_men$AGEREVQb == "060"] <- "cat2"
+# pop_synt_men$AGEREVQb_rec[pop_synt_men$AGEREVQb == "065"] <- "cat3"
+# pop_synt_men$AGEREVQb_rec[pop_synt_men$AGEREVQb == "070"] <- "cat3"
+# pop_synt_men$AGEREVQb_rec[pop_synt_men$AGEREVQb == "075"] <- "cat3"
+# pop_synt_men$AGEREVQb_rec[pop_synt_men$AGEREVQb == "080"] <- "cat3"
+# pop_synt_men$AGEREVQb_rec[pop_synt_men$AGEREVQb == "085"] <- "cat3"
+# pop_synt_men$AGEREVQb_rec[pop_synt_men$AGEREVQb == "090"] <- "cat3"
+# pop_synt_men$AGEREVQb_rec[pop_synt_men$AGEREVQb == "095"] <- "cat3"
+# pop_synt_men$AGEREVQb_rec[pop_synt_men$AGEREVQb == "100"] <- "cat3"
+# pop_synt_men$AGEREVQb_rec[pop_synt_men$AGEREVQb == "105"] <- "cat3"
+# pop_synt_men$AGEREVQb_rec[pop_synt_men$AGEREVQb == "115"] <- "cat3"
 
 ```
 ## 3) sexe de la personne de référence
@@ -330,7 +330,7 @@ pop_synt_men$sexe_rec[pop_synt_men$SEXE == "2"] <- "Femme"
 
 ```{r data-recode-job}
 
-#pop_synt_men$CS1_rec <- as.character(pop_synt_men$CS1)
+pop_synt_men$CS1_rec <- as.character(pop_synt_men$CS1)
 pop_synt_men$CS1_rec[pop_synt_men$CS1 == "1"] <- "Agri"
 pop_synt_men$CS1_rec[pop_synt_men$CS1 == "2"] <- "Artisans"
 pop_synt_men$CS1_rec[pop_synt_men$CS1 == "3"] <- "Cadres"
@@ -349,23 +349,23 @@ pop_synt_men$prof<-case_when(pop_synt_men$CS1_rec=="Autre" & pop_synt_men$TACT =
                              pop_synt_men$CS1_rec=="Autre" & pop_synt_men$TACT == "25" ~ "Autres_inac", TRUE~ pop_synt_men$CS1_rec)
 
 
-pop_synt_men$CS1_rec <- as.character(pop_synt_men$CS1)
-pop_synt_men$CS1_rec[pop_synt_men$CS1 == "1"] <- "Empl"
-pop_synt_men$CS1_rec[pop_synt_men$CS1 == "2"] <- "Empl"
-pop_synt_men$CS1_rec[pop_synt_men$CS1 == "3"] <- "Empl"
-pop_synt_men$CS1_rec[pop_synt_men$CS1 == "4"] <- "Empl"
-pop_synt_men$CS1_rec[pop_synt_men$CS1 == "5"] <- "Empl"
-pop_synt_men$CS1_rec[pop_synt_men$CS1 == "6"] <- "Empl"
-pop_synt_men$CS1_rec[pop_synt_men$CS1 == "7"] <- "Empl"
-pop_synt_men$CS1_rec[pop_synt_men$CS1 == "8"] <- "Autre"
-
-pop_synt_men$TACT<-as.character(pop_synt_men$TACT)
-
-pop_synt_men$prof<-case_when(pop_synt_men$CS1_rec=="Autre" & pop_synt_men$TACT == "12" ~ "Autres_inac",
-                             pop_synt_men$CS1_rec=="Autre" & pop_synt_men$TACT == "22" ~ "Autres_inac",
-                             pop_synt_men$CS1_rec=="Autre" & pop_synt_men$TACT == "21" ~ "Autres_inac",
-                             pop_synt_men$CS1_rec=="Autre" & pop_synt_men$TACT == "24" ~ "Autres_inac",
-                             pop_synt_men$CS1_rec=="Autre" & pop_synt_men$TACT == "25" ~ "Autres_inac", TRUE~ pop_synt_men$CS1_rec)
+# pop_synt_men$CS1_rec <- as.character(pop_synt_men$CS1)
+# pop_synt_men$CS1_rec[pop_synt_men$CS1 == "1"] <- "Empl"
+# pop_synt_men$CS1_rec[pop_synt_men$CS1 == "2"] <- "Empl"
+# pop_synt_men$CS1_rec[pop_synt_men$CS1 == "3"] <- "Empl"
+# pop_synt_men$CS1_rec[pop_synt_men$CS1 == "4"] <- "Empl"
+# pop_synt_men$CS1_rec[pop_synt_men$CS1 == "5"] <- "Empl"
+# pop_synt_men$CS1_rec[pop_synt_men$CS1 == "6"] <- "Empl"
+# pop_synt_men$CS1_rec[pop_synt_men$CS1 == "7"] <- "Empl"
+# pop_synt_men$CS1_rec[pop_synt_men$CS1 == "8"] <- "Autre"
+# 
+# pop_synt_men$TACT<-as.character(pop_synt_men$TACT)
+# 
+# pop_synt_men$prof<-case_when(pop_synt_men$CS1_rec=="Autre" & pop_synt_men$TACT == "12" ~ "Autres_inac",
+#                              pop_synt_men$CS1_rec=="Autre" & pop_synt_men$TACT == "22" ~ "Autres_inac",
+#                              pop_synt_men$CS1_rec=="Autre" & pop_synt_men$TACT == "21" ~ "Autres_inac",
+#                              pop_synt_men$CS1_rec=="Autre" & pop_synt_men$TACT == "24" ~ "Autres_inac",
+#                              pop_synt_men$CS1_rec=="Autre" & pop_synt_men$TACT == "25" ~ "Autres_inac", TRUE~ pop_synt_men$CS1_rec)
 
 
 table(pop_synt_men$prof)
@@ -381,14 +381,15 @@ pop_synt_final<-pop_synt_men%>%
 
 pop_synt_final$Voit_rec[pop_synt_final$VOIT == "0"] <- "0voit"
 pop_synt_final$Voit_rec[pop_synt_final$VOIT == "1"] <- "1voit"
-pop_synt_final$Voit_rec[pop_synt_final$VOIT == "2"] <- "1voit"
-pop_synt_final$Voit_rec[pop_synt_final$VOIT == "3"] <- "1voit"
-#pop_synt_final$Voit_rec[pop_synt_final$VOIT == "1"] <- "1voit"
-#pop_synt_final$Voit_rec[pop_synt_final$VOIT == "2"] <- "2voit"
-#pop_synt_final$Voit_rec[pop_synt_final$VOIT == "3"] <- "3voit"
+pop_synt_final$Voit_rec[pop_synt_final$VOIT == "2"] <- "2voit"
+pop_synt_final$Voit_rec[pop_synt_final$VOIT == "3"] <- "3voit"
+
+# pop_synt_final$Voit_rec[pop_synt_final$VOIT == "1"] <- "1voit"
+# pop_synt_final$Voit_rec[pop_synt_final$VOIT == "2"] <- "1voit"
+# pop_synt_final$Voit_rec[pop_synt_final$VOIT == "3"] <- "1voit"
 
 #pop_synt_final<-pop_synt_final%>% select(-VOIT,)
-pop_synt_final$Voit_rec
+table(pop_synt_final$Voit_rec)
 ```
 ### Calcul des contraintes sur les fréquences des voitures
 
@@ -396,29 +397,29 @@ Calcul des marginaux ? A vérfier
 
 ```{r marginal-data-computation}
 SFM_lv<-c("ATM", "CAE1","CAE2","CAE3", "CSE", "FM", "PS")
-SFM_lv<-c("ATM", "CAE1","CSE", "FM", "PS")
-SFM_lv<-c("ATM", "CAE1", "PS")
+# SFM_lv<-c("ATM", "CAE1","CSE", "FM", "PS")
+# SFM_lv<-c("ATM", "CAE1", "PS")
 Age_lv<-c("cat1",   "cat2",  "cat3",  "cat4", "cat5")
-Age_lv<-c("cat1",   "cat2",  "cat3")
+# Age_lv<-c("cat1",   "cat2",  "cat3")
 
 Sex_lv<-c("Femme","Homme")
 
 Prof_lv<-c("Agri","Artisans", "Autres_inac","Cadres","Chom","Eleve"," Empl","Ouvriers","Prof_int","Retraite")
 #Prof_lv<-c("Agri","Artisans", "Cadres","Chom","Eleve"," Empl","Ouvriers","Retraite")  ATTENTION ERREUR AUTRE INAV NON PRIS EN COMPTE
 #Prof_lv<-c("Artisans", "Cadres","Chom","Eleve"," Empl","Retraite") IDEM
-Prof_lv<-c("Cadres","Autres_inac","Empl","Retraite")
-Prof_lv<-c("Autres_inac","Empl")
+#Prof_lv<-c("Cadres","Autres_inac","Empl","Retraite")
+#Prof_lv<-c("Autres_inac","Empl")
 
 
 Voit_lv<-c("0voit",  "1voit",  "2voit",  "3voit" )
-Voit_lv<-c("0voit",  "1voit")
+#Voit_lv<-c("0voit",  "1voit")
 donnees_aggr<-as.data.frame(matrix(nrow = 25, ncol = 4))
-donnees_aggr<-as.data.frame(matrix(nrow = 21, ncol = 2))
-donnees_aggr<-as.data.frame(matrix(nrow = 19, ncol = 2))
-donnees_aggr<-as.data.frame(matrix(nrow = 17, ncol = 2))
-donnees_aggr<-as.data.frame(matrix(nrow = 15, ncol = 2))
-donnees_aggr<-as.data.frame(matrix(nrow = 13, ncol = 2))
-donnees_aggr<-as.data.frame(matrix(nrow = 11, ncol = 2))
+# donnees_aggr<-as.data.frame(matrix(nrow = 21, ncol = 2))
+# donnees_aggr<-as.data.frame(matrix(nrow = 19, ncol = 2))
+# donnees_aggr<-as.data.frame(matrix(nrow = 17, ncol = 2))
+# donnees_aggr<-as.data.frame(matrix(nrow = 15, ncol = 2))
+# donnees_aggr<-as.data.frame(matrix(nrow = 13, ncol = 2))
+# donnees_aggr<-as.data.frame(matrix(nrow = 11, ncol = 2))
 SFM_ag<-(table(pop_synt_final$SFM_agg, pop_synt_final$Voit_rec))/nrow(pop_synt_final)
 Age_ag<-(table(pop_synt_final$AGEREVQb_rec, pop_synt_final$Voit_rec))/nrow(pop_synt_final)
 
@@ -437,31 +438,31 @@ donnees_aggr[1,]<-(table(pop_synt_final$Voit_rec))/nrow(pop_synt_final)
 #Création de labels
 
 SFM_lv<-c("ATM", "CAE1","CAE2","CAE3", "CSE", "FM", "PS")
-SFM_lv<-c("ATM", "CAE1","CSE", "FM", "PS")
-SFM_lv<-c("ATM", "CAE1","PS")
+#SFM_lv<-c("ATM", "CAE1","CSE", "FM", "PS")
+#SFM_lv<-c("ATM", "CAE1","PS")
 
 Age_lv<-c("cat1",   "cat2",  "cat3",  "cat4", "cat5")
-Age_lv<-c("cat1",   "cat2",  "cat3")
+#Age_lv<-c("cat1",   "cat2",  "cat3")
 
 Sex_lv<-c("Femme","Homme")
 
 Prof_lv<-c("Agri","Artisans", "Autres_inac","Cadres","Chom","Eleve"," Empl","Ouvriers","Prof_int","Retraite")
-Prof_lv<-c("Agri","Artisans", "Autres_inac","Cadres","Eleve"," Empl","Ouvriers","Retraite")
-Prof_lv<-c("Artisans", "Autres_inac","Cadres","Eleve"," Empl","Retraite")
-Prof_lv<-c("Cadres","Autres_inac","Empl","Retraite")
-Prof_lv<-c("Autres_inac","Empl")
+#Prof_lv<-c("Agri","Artisans", "Autres_inac","Cadres","Eleve"," Empl","Ouvriers","Retraite")
+#Prof_lv<-c("Artisans", "Autres_inac","Cadres","Eleve"," Empl","Retraite")
+#Prof_lv<-c("Cadres","Autres_inac","Empl","Retraite")
+#Prof_lv<-c("Autres_inac","Empl")
 
 Voit_lv<-c("0voit",  "1voit",  "2voit",  "3voit" )
-Voit_lv<-c("0voit",  "1voit")
+#Voit_lv<-c("0voit",  "1voit")
 
 donnees_aggr<-as.data.frame(matrix(nrow = 25, ncol = 4))
-donnees_aggr<-as.data.frame(matrix(nrow = 23, ncol = 2))
-donnees_aggr<-as.data.frame(matrix(nrow = 21, ncol = 2))
-donnees_aggr<-as.data.frame(matrix(nrow = 19, ncol = 2))
-donnees_aggr<-as.data.frame(matrix(nrow = 17, ncol = 2))
-donnees_aggr<-as.data.frame(matrix(nrow = 15, ncol = 2))
-donnees_aggr<-as.data.frame(matrix(nrow = 13, ncol = 2))
-donnees_aggr<-as.data.frame(matrix(nrow = 11, ncol = 2))
+# donnees_aggr<-as.data.frame(matrix(nrow = 23, ncol = 2))
+# donnees_aggr<-as.data.frame(matrix(nrow = 21, ncol = 2))
+# donnees_aggr<-as.data.frame(matrix(nrow = 19, ncol = 2))
+# donnees_aggr<-as.data.frame(matrix(nrow = 17, ncol = 2))
+# donnees_aggr<-as.data.frame(matrix(nrow = 15, ncol = 2))
+# donnees_aggr<-as.data.frame(matrix(nrow = 13, ncol = 2))
+# donnees_aggr<-as.data.frame(matrix(nrow = 11, ncol = 2))
 SFM_ag<-(table(pop_synt_final$SFM_agg, pop_synt_final$Voit_rec))/nrow(pop_synt_final)
 
 Age_ag<-(table(pop_synt_final$AGEREVQb_rec, pop_synt_final$Voit_rec))/nrow(pop_synt_final)
@@ -473,14 +474,14 @@ Prof_ag<-(table(pop_synt_final$prof, pop_synt_final$Voit_rec))/nrow(pop_synt_fin
 donnees_aggr[1,]<-(table(pop_synt_final$Voit_rec))/nrow(pop_synt_final)
 
 
-#donnees_aggr[c(2:8),]<-SFM_ag
-#donnees_aggr[(9:13),]<-Age_ag
-#donnees_aggr[(14:15),]<-Sex_ag
-#donnees_aggr[(16:25),]<-Prof_ag
-#donnees_aggr[c(2:6),]<-SFM_ag
-#donnees_aggr[(7:11),]<-Age_ag
-#donnees_aggr[(12:13),]<-Sex_ag
-#donnees_aggr[(14:23),]<-Prof_ag
+donnees_aggr[c(2:8),]<-SFM_ag
+donnees_aggr[(9:13),]<-Age_ag
+donnees_aggr[(14:15),]<-Sex_ag
+donnees_aggr[(16:25),]<-Prof_ag
+donnees_aggr[c(2:6),]<-SFM_ag
+donnees_aggr[(7:11),]<-Age_ag
+donnees_aggr[(12:13),]<-Sex_ag
+donnees_aggr[(14:23),]<-Prof_ag
 
 #donnees_aggr[c(2:6),]<-SFM_ag
 #donnees_aggr[(7:9),]<-Age_ag
@@ -494,10 +495,10 @@ donnees_aggr[1,]<-(table(pop_synt_final$Voit_rec))/nrow(pop_synt_final)
 #donnees_aggr[(8:9),]<-Sex_ag
 #donnees_aggr[(10:13),]<-Prof_ag
 
-donnees_aggr[c(2:4),]<-SFM_ag
-donnees_aggr[(5:7),]<-Age_ag
-donnees_aggr[(8:9),]<-Sex_ag
-donnees_aggr[(10:11),]<-Prof_ag
+# donnees_aggr[c(2:4),]<-SFM_ag
+# donnees_aggr[(5:7),]<-Age_ag
+# donnees_aggr[(8:9),]<-Sex_ag
+# donnees_aggr[(10:11),]<-Prof_ag
 
 
 row.names(donnees_aggr)<-c("Ensemble",SFM_lv,Age_lv,Sex_lv,Prof_lv)
