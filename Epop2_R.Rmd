@@ -3,7 +3,8 @@ title: "Epop2"
 author:
   - Boyam Fabrice Yaméogo
   - Pierre-Olivier Vandanjon
-date: "14/10/2022"
+  - pierre 
+date: "20/10/2022"
 output: html_document
 ---
 
