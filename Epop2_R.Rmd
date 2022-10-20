@@ -3,9 +3,21 @@ title: "Epop2"
 author:
   - Boyam Fabrice Yaméogo
   - Pierre-Olivier Vandanjon
-date: "14/10/2022"
+date: "20/10/2022"
 output: html_document
 ---
+
+# Travail en cours sur Minxent
+
+Le calcul du Hessien semble compliqué malgré la robustification...
+Error in if (any(wt < 0) || (s <- sum(wt)) == 0) stop("weights must be non-negative and not all zero") : 
+  valeur manquante là où TRUE / FALSE est requis
+  
+  puis
+  
+  Error in eigen(W, symmetric = TRUE) : infinite or missing values in 'x'
+  
+  Mon analyse est que c'est compliqué de calculer un Hessien avec 1200 x 1200. Il vaut mieux laisser tomber et utiliser notre méthode plus robuste qui est basé sur le gradient : la méthode des petits pas 
 
 
 # Resumé
@@ -71,6 +83,61 @@ install.packages("minxent") Minxent n'est plus maintenu dans le CRAN, c'est pour
  https://github.com/cran/minxent/blob/master/R/minxent.multiple.R
 
  ```{r optimize-entropy-function}
+ minxent.multiple_pov<-function (q, G, eta,lambda)
+ {
+ fk<-function (lambda, q, G, eta)
+ {
+      lambda0<-log(sum(q*exp(-lambda%*%G[-1,])))
+      (q * exp(-lambda0)*exp(-lambda %*% G[-1,]))%*% t(G) - eta
+ }
+
+     lambda0 <- log(sum(q * exp(-lambda * G[-1, ])))
+     min_cond = 1e4 
+     iter_general <- 0
+     max_iter_general <- 1000
+     repeat {
+         iter_general <-  iter_general + 1
+         lambda_old <- lambda
+         lambda0 <- log(sum(q * exp(-lambda_old %*% G[-1, ])))
+         f_old = fk(lambda_old, q = q, G = G, eta = eta)
+         dev.ent <- (q * exp(-lambda0) * exp(-lambda_old %*% G[-1,
+             ])) %*% t(G)
+         pg <- c(q * exp(-lambda0) * exp(-lambda_old %*% G[-1,
+             ]))
+         pg_robust<-pg
+         pg_robust[pg_robust<0]<-0
+         pg_robust <- pg_robust/(sum(pg_robust))
+         pg_robust <- matrix(pg_robust, ncol=1)
+         #cov.ent <- cov.wt(t(G), wt = pg_robust, method = "ML", cor = FALSE)
+         #hess.ent <- cov.ent$cov
+         #W <- hess.ent[-1, -1]
+         W  <-  G %*% (diag(pg_robust) - pg_robust %*% t(pg_robust)) %*% t(G) 
+         W <- W[-1, -1]
+         #Go <- solve(W)
+         D<-eigen(W, symmetric = TRUE)
+         d<-D$values
+         dmax<-max(abs(d))
+         d_robust<-d
+         d_robust[d_robust<dmax/min_cond]<-abs(dmax/min_cond)
+         d_robust_inverse<-1/d_robust
+         Go<-D$vectors %*% diag(d_robust_inverse) %*% t(D$vectors)
+         lambda <- lambda_old + f_old[, -1] %*% Go
+
+         if (max(abs(lambda - lambda_old)) < 1e-08)
+             break
+          if  (iter_general > max_iter_general)
+            break
+        print(iter_general)
+     }
+     out.lj <- list(estimates = lambda, infmat = Go)
+     lambda <- out.lj$estimates
+     lambda0 <- log(sum(q * exp(-lambda %*% G[-1, ])))
+     pi_solve <- (q * exp(-lambda0) * exp(-lambda %*% G[-1, ]))
+     list(Langrangians= c(lambda0,lambda) , Estimates=pi_solve)
+ }
+
+ 
+ 
  minxent.multiple<-function (q, G, eta,lambda)
  {
  fk<-function (lambda, q, G, eta)
@@ -104,7 +171,7 @@ install.packages("minxent") Minxent n'est plus maintenu dans le CRAN, c'est pour
      list(Langrangians= c(lambda0,lambda) , Estimates=pi_solve)
  }
 
- minxent.multiple_pov<-function (q, G, eta,lambda)
+ minxent.multiple_pov_back<-function (q, G, eta,lambda)
  {
  fk<-function (lambda, q, G, eta)
  {
@@ -121,7 +188,7 @@ install.packages("minxent") Minxent n'est plus maintenu dans le CRAN, c'est pour
      common_ratio<-1/2
 
      lambda0 <- log(sum(q * exp(-lambda * G[-1, ])))
-     repeat {8
+     repeat {
          iter_general <-  iter_general + 1
          lambda_old <- lambda
          lambda0 <- log(sum(q * exp(-lambda_old %*% G[-1, ])))
