@@ -3,16 +3,18 @@ title: "Epop2"
 author:
   - Boyam Fabrice Yaméogo
   - Pierre-Olivier Vandanjon
-  - pierre 
+  - pierre
 date: "20/10/2022"
 output: html_document
 ---
 
 
+
+
 # Resumé
 
 Ce R markdown  est un des fichiers qui supporte l'article overleaf Article_Epop2_methodo_enriched_syntpop_by_aggregate_data_by_entropy_optimisation
-Ce script utilise le fichier de données fourni par Fabrice Boyam Yaméogo (courriel du 1er septembre 2022)
+Ce script utilise le fichier de données fourni par Fabrice Boyam Yaméogo (courriel du 1er septembre 2022) pour traiter et filtrer les données.
 Il a pour objectif de comparer les probabilités jointes des voitures avec les caractéristiques socioprofessionnelle avec les probabilités jointes trouvées par maximisation de l'entropie avec comme contrainte
 * les fréquences des caractéristiques socioprofessionnelle des données
 * les marginaux de la possession de véhicules
@@ -22,10 +24,9 @@ En résumé, nous vérifions la pertinence de l'estimation par l'algorithme avec
 
 Le document est divisé dans les parties suivantes
 * Préparer l'environnement de travail en chargeant les données et les librairies R, le recodage des variables et les valeurs réelles des probabilités jointes
-* Construires la matrice contrainte
-* Une partie Test où nous testons l'algorithme d'optimisation de maximisation de l'entropie (ou de minimisation de l'entropie croisée)
+* Construire la matrice contrainte
+* Estmation où nous testons l'algorithme d'optimisation de maximisation de l'entropie (ou de minimisation de l'entropie croisée)  et nous évaluons la solution trouvées
 
-Nous avons un problème numérique de système singulier. Nous pensions que cela provenait du nombre de variables et de contraintes. Mais même avec un système très frustre de 72 variables et de 43 contraintes, nous avons un problème de singularité. Il faudrait passer sur un autre
 
 ## Historique
 
@@ -33,12 +34,28 @@ Nous avons un problème numérique de système singulier. Nous pensions que cela
  * Le courriel contient un script script :recodage_population_synth_dep44.R qui est repris ici pour traiter les données
 * Ce document a d'abord pris la forme d'un jupyter R sous google colab mais c'était assez lourd à utiliser car il fallait réinstaller régulièrement les librairies, ce qui étaient long, et recharger les données, ce qui n'était pas trop long mais qui devait passer par le compte google de Pierre-Olivier Vandanjon.
 * Nous sommes passés à un Rmarkdown hebergé sous github. Il se lance sous R en tapant la commande rmarkdown::render('Epop_R.Rmd')
+* Nous avons eu des erreurs avec minxent
+Nous avons un problème numérique de système singulier. Nous pensions que cela provenait du nombre de variables et de contraintes. Mais même avec un système très frustre de 72 variables et de 43 contraintes, nous avons un problème de singularité numérique dans la partie du calcul du Hessien
+* calcul du Hessien
+Tout d'abord, le premier test a consisté à robustifier le calcul du Hessien. En effet, un Hessien singulier ne doit pas empêcher une minimisation. Le travail a consisté à augmenter les plus petites valeurs propres pour obtenir un conditionnement contrôlé.
+Le calcul du Hessien semble compliqué malgré la robustification...l'erreur suiant persiste
+Error in if (any(wt < 0) || (s <- sum(wt)) == 0) stop("weights must be non-negative and not all zero") :
+  valeur manquante là où TRUE / FALSE est requis
+
+  puis
+
+  Error in eigen(W, symmetric = TRUE) : infinite or missing values in 'x'
+
+  Mon analyse est que c'est compliqué de calculer un Hessien avec 1200 x 1200. Il vaut mieux laisser tomber et utiliser une méthode plus robuste qui est basé sur le gradient : la méthode des petits pas. Cela veut dire que nous ne testons pas un BFGS amélioré.
+* Minimisation par gradient
+Comme robustifier un hessien 1200x1200 est problématique,  nous pouvons utiliser une méthode moins sophistiquée qui ne se base pas sur le calcul du Hessien. L'itération passe oar une descente du gradient. Le principe est très simple tant que le critère diminue, on  descend le gradient. Dès qu'il réaugmmente, on arrête et on recalcule un gradient à ce niveau.
+
 
 # Préparer l'environnement
 Installer les packages, j'ai utilisé la fonction décrite dans
 https://askcodez.com/verifier-si-r-package-est-installe-puis-en-charge-de-la-bibliotheque.html
 
- ```{r install-librairies}
+```{r install-librairies}
 check.and.install.packages<-function(package_name){
     if(!package_name%in%installed.packages()){
         install.packages(package_name)
@@ -53,7 +70,7 @@ check.and.install.packages("readr")
 check.and.install.packages("prettyR")
 check.and.install.packages("boot")
 check.and.install.packages("stringr")
- ```
+```
  Charger les librairies
 
 ```{r charge-librairies}
@@ -71,7 +88,144 @@ library(boot) # POV 14 septembre pour avoir la fonction simplexe
 install.packages("minxent") Minxent n'est plus maintenu dans le CRAN, c'est pourquoi j'ai téléchargé la dernière version
  https://github.com/cran/minxent/blob/master/R/minxent.multiple.R
 
- ```{r optimize-entropy-function}
+```{r optimize-entropy-function}
+ minxent.multiple_pov<-function (q, G, eta,lambda, maxiter)
+ {
+ fk<-function (lambda, q, G, eta)
+ {
+      lambda0<-log(sum(q*exp(-lambda%*%G[-1,])))
+      (q * exp(-lambda0)*exp(-lambda %*% G[-1,]))%*% t(G) - eta
+ }
+ objective<-function (lambda, q, G, eta)
+ {
+      lambda0<-log(sum(q*exp(-lambda%*%G[-1,])))
+      -lambda0 - sum(lambda*eta[-1])
+ }
+    iter_general <- 0
+    max_iter_general <- maxiter
+     common_ratio_descending<-1/2
+     common_ratio_ascending<-2
+
+     lambda0 <- log(sum(q * exp(-lambda * G[-1, ])))
+     repeat {
+         iter_general <-  iter_general + 1
+         lambda_old <- lambda
+         lambda0 <- log(sum(q * exp(-lambda_old %*% G[-1, ])))
+         f_old = fk(lambda_old, q = q, G = G, eta = eta)
+         dev.ent <- (q * exp(-lambda0) * exp(-lambda_old %*% G[-1,
+             ])) %*% t(G)
+         pg <- c(q * exp(-lambda0) * exp(-lambda_old %*% G[-1,
+             ]))
+#         cov.ent <- cov.wt(t(G), wt = pg, method = "ML", cor = FALSE)
+#         hess.ent <- cov.ent$cov
+#         W <- hess.ent[-1, -1]
+#         Go <- solve(W)
+#         lambda <- lambda_old + f_old[, -1] %*% Go
+
+         alpha_ascent<-1
+         alpha_descent<-1
+         alpha <- 1
+         alpha_old <- alpha
+         lambda<- lambda_old
+         lambda_new<- lambda
+         level_objective<-objective(lambda_old, q = q, G = G, eta = eta)
+         level_objective_new<-level_objective
+         test_descent<-0
+         test_ascent<-0
+         repeat {
+          lambda_new  <- lambda_old + alpha*f_old[, -1]
+          level_objective_new<-objective(lambda_new, q = q, G = G, eta = eta)
+          if (level_objective_new<level_objective )  {
+            alpha_descent <- common_ratio_descending*alpha_descent
+            alpha_old <- alpha
+            alpha <- alpha_descent
+            test_descent<-1
+            }
+          else {
+            level_objective<-level_objective_new
+            lambda<-lambda_new
+            alpha_ascent <- common_ratio_ascending*alpha_ascent
+            alpha_old <- alpha
+            alpha <- alpha_ascent
+            test_ascent=1
+            }
+          if (test_descent*test_ascent > 0.5)
+            break
+          if (alpha < 1e-06)
+            break
+         }
+
+         if (max(abs(lambda - lambda_old)) < 1e-08)
+             break
+        if  (iter_general > max_iter_general)
+            break
+            # test unitire
+      #  print(iter_general)
+      #  print(alpha_old)
+     }
+     out.lj <- list(estimates = lambda)
+     lambda <- out.lj$estimates
+     lambda0 <- log(sum(q * exp(-lambda %*% G[-1, ])))
+     pi_solve <- (q * exp(-lambda0) * exp(-lambda %*% G[-1, ]))
+     list(Langrangians= c(lambda0,lambda) , Estimates=pi_solve)
+ }
+
+
+ minxent.multiple_pov_hessien<-function (q, G, eta,lambda)
+ {
+ fk<-function (lambda, q, G, eta)
+ {
+      lambda0<-log(sum(q*exp(-lambda%*%G[-1,])))
+      (q * exp(-lambda0)*exp(-lambda %*% G[-1,]))%*% t(G) - eta
+ }
+
+     lambda0 <- log(sum(q * exp(-lambda * G[-1, ])))
+     min_cond = 1e4
+     iter_general <- 0
+     max_iter_general <- 1000
+     repeat {
+         iter_general <-  iter_general + 1
+         lambda_old <- lambda
+         lambda0 <- log(sum(q * exp(-lambda_old %*% G[-1, ])))
+         f_old = fk(lambda_old, q = q, G = G, eta = eta)
+         dev.ent <- (q * exp(-lambda0) * exp(-lambda_old %*% G[-1,
+             ])) %*% t(G)
+         pg <- c(q * exp(-lambda0) * exp(-lambda_old %*% G[-1,
+             ]))
+         pg_robust<-pg
+         pg_robust[pg_robust<0]<-0
+         pg_robust <- pg_robust/(sum(pg_robust))
+         pg_robust <- matrix(pg_robust, ncol=1)
+         #cov.ent <- cov.wt(t(G), wt = pg_robust, method = "ML", cor = FALSE)
+         #hess.ent <- cov.ent$cov
+         #W <- hess.ent[-1, -1]
+         W  <-  G %*% (diag(pg_robust) - pg_robust %*% t(pg_robust)) %*% t(G)
+         W <- W[-1, -1]
+         #Go <- solve(W)
+         D<-eigen(W, symmetric = TRUE)
+         d<-D$values
+         dmax<-max(abs(d))
+         d_robust<-d
+         d_robust[d_robust<dmax/min_cond]<-abs(dmax/min_cond)
+         d_robust_inverse<-1/d_robust
+         Go<-D$vectors %*% diag(d_robust_inverse) %*% t(D$vectors)
+         lambda <- lambda_old + f_old[, -1] %*% Go
+
+         if (max(abs(lambda - lambda_old)) < 1e-08)
+             break
+          if  (iter_general > max_iter_general)
+            break
+        print(iter_general)
+     }
+     out.lj <- list(estimates = lambda, infmat = Go)
+     lambda <- out.lj$estimates
+     lambda0 <- log(sum(q * exp(-lambda %*% G[-1, ])))
+     pi_solve <- (q * exp(-lambda0) * exp(-lambda %*% G[-1, ]))
+     list(Langrangians= c(lambda0,lambda) , Estimates=pi_solve)
+ }
+
+
+
  minxent.multiple<-function (q, G, eta,lambda)
  {
  fk<-function (lambda, q, G, eta)
@@ -105,75 +259,10 @@ install.packages("minxent") Minxent n'est plus maintenu dans le CRAN, c'est pour
      list(Langrangians= c(lambda0,lambda) , Estimates=pi_solve)
  }
 
- minxent.multiple_pov<-function (q, G, eta,lambda)
- {
- fk<-function (lambda, q, G, eta)
- {
-      lambda0<-log(sum(q*exp(-lambda%*%G[-1,])))
-      (q * exp(-lambda0)*exp(-lambda %*% G[-1,]))%*% t(G) - eta
- }
- objective<-function (lambda, q, G, eta)
- {
-      lambda0<-log(sum(q*exp(-lambda%*%G[-1,])))
-      -lambda0 - sum(lambda*eta[-1])
- }
-    iter_general <- 0
-    max_iter_general <- 1000
-     common_ratio<-1/2
-
-     lambda0 <- log(sum(q * exp(-lambda * G[-1, ])))
-     repeat {8
-         iter_general <-  iter_general + 1
-         lambda_old <- lambda
-         lambda0 <- log(sum(q * exp(-lambda_old %*% G[-1, ])))
-         f_old = fk(lambda_old, q = q, G = G, eta = eta)
-         dev.ent <- (q * exp(-lambda0) * exp(-lambda_old %*% G[-1,
-             ])) %*% t(G)
-         pg <- c(q * exp(-lambda0) * exp(-lambda_old %*% G[-1,
-             ]))
-#         cov.ent <- cov.wt(t(G), wt = pg, method = "ML", cor = FALSE)
-#         hess.ent <- cov.ent$cov
-#         W <- hess.ent[-1, -1]
-#         Go <- solve(W)
-#         lambda <- lambda_old + f_old[, -1] %*% Go
-
-         alpha<-1
-         alpha_new<-1
-         lambda<- lambda_old
-         lambda_new<- lambda
-         level_objective<-objective(lambda_old, q = q, G = G, eta = eta)
-         level_objective_new<-level_objective
-         repeat {
-          lambda  <- lambda_old + alpha*f_old[, -1]
-          level_objective_new<-objective(lambda_new, q = q, G = G, eta = eta)
-          if (level_objective_new>level_objective )  {
-            alpha <- common_ratio*alpha
-            lambda<-lambda_olf
-            }
-          else {
-            level_objective<-level_objective_new
-            break
-            }
-          if (alpha < 1e-06)
-            break
-         }
-
-         if (max(abs(lambda - lambda_old)) < 1e-08)
-             break
-        if  (iter_general > max_iter_general)
-            break
-        print(iter_general)
-     }
-     out.lj <- list(estimates = lambda)
-     lambda <- out.lj$estimates
-     lambda0 <- log(sum(q * exp(-lambda %*% G[-1, ])))
-     pi_solve <- (q * exp(-lambda0) * exp(-lambda %*% G[-1, ]))
-     list(Langrangians= c(lambda0,lambda) , Estimates=pi_solve)
- }
- ```
+```
 On charge les données
 
- ```{r data-download}
+```{r data-download}
  pop_synt_all<-read_feather("~/Downloads/pop_synt_ipondi_TRS_pvm.feather") %>%
   as.data.frame()
   pop_synt_men<-pop_synt_all%>%
@@ -184,23 +273,24 @@ On charge les données
     mutate(SFMb=as.character(SFM))%>%
     mutate(NENFRb=as.character(NENFR))%>%
     mutate(AGEREVQb=as.character(AGEREVQ))
-  head(pop_synt_men)
+# Test unitaire
+#  head(pop_synt_men)
 
- ```
+```
 
- Recodage des variables
+## Recodage des variables
 
-## 1) Structure familiale (variable SFM_agg)
+### 1) Structure familiale (variable SFM_agg)
 
-### PS : Personne seule
-### FM : Famille monoparentale
-### CSE : Couple sans enfant
-### CAE1 : Couple avec  un enfant
-### CAE2 : Couple avec  deux enfants
-### CAE3 : Couple avec trois enfants ou plus
-### ATM : Autre type de ménage
+* PS : Personne seule
+* FM : Famille monoparentale
+* CSE : Couple sans enfant
+* CAE1 : Couple avec  un enfant
+* CAE2 : Couple avec  deux enfants
+* CAE3 : Couple avec trois enfants ou plus
+* ATM : Autre type de ménage
 
-```{r data-recode-family}
+ ```{r data-recode-family}
 pop_synt_men$SFM_agg<- case_when(pop_synt_men$SFMb=="11"|pop_synt_men$SFMb== "12" ~ "PS",
                                  pop_synt_men$SFMb=="21"|pop_synt_men$SFMb=="22"|pop_synt_men$SFMb=="40"~ "FM",
                                  pop_synt_men$SFMb=="30"|pop_synt_men$SFMb=="51"|pop_synt_men$SFMb=="52" ~ "CSE",
@@ -224,44 +314,20 @@ pop_synt_men$SFM_agg<- case_when(pop_synt_men$SFMb=="11"|pop_synt_men$SFMb== "12
                                  pop_synt_men$SFMb=="62" ~ "ATM",
                                  pop_synt_men$SFMb=="70" ~ "ATM")
 
-#
-# pop_synt_men$SFM_agg<- case_when(pop_synt_men$SFMb=="11"|pop_synt_men$SFMb== "12" ~ "PS",
-#                                  pop_synt_men$SFMb=="21"|pop_synt_men$SFMb=="22"|pop_synt_men$SFMb=="40"~ "PS",
-#                                  pop_synt_men$SFMb=="30"|pop_synt_men$SFMb=="51"|pop_synt_men$SFMb=="52" ~ "PS",
-#                                  pop_synt_men$SFMb=="61"& pop_synt_men$NENFRb=="0" ~ "PS",
-#                                  pop_synt_men$SFMb=="31"~ "CAE1",
-#                                  pop_synt_men$SFMb=="53"& pop_synt_men$NENFRb=="1"~ "CAE1",
-#                                  pop_synt_men$SFMb=="54"& pop_synt_men$NENFRb=="1"~ "CAE1",
-#                                  pop_synt_men$SFMb=="61"& pop_synt_men$NENFRb=="1"~ "CAE1",
-#                                  pop_synt_men$SFMb=="32"~ "CAE1",
-#                                  pop_synt_men$SFMb=="53"& pop_synt_men$NENFRb=="2"~ "CAE1",
-#                                  pop_synt_men$SFMb=="54"& pop_synt_men$NENFRb=="2"~ "CAE1",
-#                                  pop_synt_men$SFMb=="61"& pop_synt_men$NENFRb=="2"~ "CAE1",
-#                                  pop_synt_men$SFMb=="33"~ "CAE1",
-#                                  pop_synt_men$SFMb=="34"~ "CAE1",
-#                                  pop_synt_men$SFMb=="53"& pop_synt_men$NENFRb=="3"~ "CAE1",
-#                                  pop_synt_men$SFMb=="53"& pop_synt_men$NENFRb=="4"~ "CAE1",
-#                                  pop_synt_men$SFMb=="54"& pop_synt_men$NENFRb=="3"~ "CAE1",
-#                                  pop_synt_men$SFMb=="54"& pop_synt_men$NENFRb=="4"~ "CAE1",
-#                                  pop_synt_men$SFMb=="61"& pop_synt_men$NENFRb=="3"~ "CAE1",
-#                                  pop_synt_men$SFMb=="61"& pop_synt_men$NENFRb=="4"~ "CAE1",
-#                                  pop_synt_men$SFMb=="62" ~ "ATM",
-#                                  pop_synt_men$SFMb=="70" ~ "ATM")
 
 
-table(pop_synt_men$SFM_agg)
+# test unitaire
+#table(pop_synt_men$SFM_agg)
 ```
-## 2) Variable âge de la personne de référence
+### 2) Variable âge de la personne de référence
 
-### cat1 : Moins de 35 ans
-### cat2 : De 35 à 49 ans
-### cat3 : De 50 à 64 ans
-### cat4 : De 65 à 74 ans
-### cat5 : 75 ans ou plus
+* cat1 : Moins de 35 ans
+* cat2 : De 35 à 49 ans
+* cat3 : De 50 à 64 ans
+* cat4 : De 65 à 74 ans
+* cat5 : 75 ans ou plus
 
 ```{r data-recode-age}
-
-
 pop_synt_men$AGEREVQb_rec <- pop_synt_men$AGEREVQb
 pop_synt_men$AGEREVQb_rec[pop_synt_men$AGEREVQb == "010"] <- "cat1"
 pop_synt_men$AGEREVQb_rec[pop_synt_men$AGEREVQb == "015"] <- "cat1"
@@ -284,59 +350,28 @@ pop_synt_men$AGEREVQb_rec[pop_synt_men$AGEREVQb == "095"] <- "cat5"
 pop_synt_men$AGEREVQb_rec[pop_synt_men$AGEREVQb == "100"] <- "cat5"
 pop_synt_men$AGEREVQb_rec[pop_synt_men$AGEREVQb == "105"] <- "cat5"
 pop_synt_men$AGEREVQb_rec[pop_synt_men$AGEREVQb == "115"] <- "cat5"
-
-
-# pop_synt_men$AGEREVQb_rec <- pop_synt_men$AGEREVQb
-# pop_synt_men$AGEREVQb_rec[pop_synt_men$AGEREVQb == "010"] <- "cat1"
-# pop_synt_men$AGEREVQb_rec[pop_synt_men$AGEREVQb == "015"] <- "cat1"
-# pop_synt_men$AGEREVQb_rec[pop_synt_men$AGEREVQb == "020"] <- "cat1"
-# pop_synt_men$AGEREVQb_rec[pop_synt_men$AGEREVQb == "025"] <- "cat1"
-# pop_synt_men$AGEREVQb_rec[pop_synt_men$AGEREVQb == "030"] <- "cat1"
-# pop_synt_men$AGEREVQb_rec[pop_synt_men$AGEREVQb == "035"] <- "cat2"
-# pop_synt_men$AGEREVQb_rec[pop_synt_men$AGEREVQb == "040"] <- "cat2"
-# pop_synt_men$AGEREVQb_rec[pop_synt_men$AGEREVQb == "045"] <- "cat2"
-# pop_synt_men$AGEREVQb_rec[pop_synt_men$AGEREVQb == "050"] <- "cat2"
-# pop_synt_men$AGEREVQb_rec[pop_synt_men$AGEREVQb == "055"] <- "cat2"
-# pop_synt_men$AGEREVQb_rec[pop_synt_men$AGEREVQb == "060"] <- "cat2"
-# pop_synt_men$AGEREVQb_rec[pop_synt_men$AGEREVQb == "065"] <- "cat3"
-# pop_synt_men$AGEREVQb_rec[pop_synt_men$AGEREVQb == "070"] <- "cat3"
-# pop_synt_men$AGEREVQb_rec[pop_synt_men$AGEREVQb == "075"] <- "cat3"
-# pop_synt_men$AGEREVQb_rec[pop_synt_men$AGEREVQb == "080"] <- "cat3"
-# pop_synt_men$AGEREVQb_rec[pop_synt_men$AGEREVQb == "085"] <- "cat3"
-# pop_synt_men$AGEREVQb_rec[pop_synt_men$AGEREVQb == "090"] <- "cat3"
-# pop_synt_men$AGEREVQb_rec[pop_synt_men$AGEREVQb == "095"] <- "cat3"
-# pop_synt_men$AGEREVQb_rec[pop_synt_men$AGEREVQb == "100"] <- "cat3"
-# pop_synt_men$AGEREVQb_rec[pop_synt_men$AGEREVQb == "105"] <- "cat3"
-# pop_synt_men$AGEREVQb_rec[pop_synt_men$AGEREVQb == "115"] <- "cat3"
-
 ```
-## 3) sexe de la personne de référence
-
+### 3) sexe de la personne de référence
 
 ```{r data-recode-sex}
 pop_synt_men$sexe_rec <- as.character(pop_synt_men$SEXE)
 pop_synt_men$sexe_rec[pop_synt_men$SEXE == "1"] <- "Homme"
 pop_synt_men$sexe_rec[pop_synt_men$SEXE == "2"] <- "Femme"
-
 ```
-##4) Profession et catégorie socioprofessionnelle de la PR
+### 4) Profession et catégorie socioprofessionnelle de la PR
 
-
-### Agri : Agriculteurs exploitants
-### Artisans : Artisans, commerçants et chefs d'entreprise
-### Cadres : Cadres et professions intellectuelles supérieures
-### Pro_int : Professions Intermédiaires
-### Empl : Employés:
-### Ouvriers : Ouvriers
-### Retraite : Retraités
-### Eleve : Etudiants, élèves
-### Chom : Chômeurs
-### Autres_ina : Autres personnes sans activité professionnelle et non déclaré
-
-
+* Agri : Agriculteurs exploitants
+* Artisans : Artisans, commerçants et chefs d'entreprise
+* Cadres : Cadres et professions intellectuelles supérieures
+* Pro_int : Professions Intermédiaires
+* Empl : Employés:
+* Ouvriers : Ouvriers
+* Retraite : Retraités
+* Eleve : Etudiants, élèves
+* Chom : Chômeurs
+* Autres_ina : Autres personnes sans activité professionnelle et non déclaré
 
 ```{r data-recode-job}
-
 pop_synt_men$CS1_rec <- as.character(pop_synt_men$CS1)
 pop_synt_men$CS1_rec[pop_synt_men$CS1 == "1"] <- "Agri"
 pop_synt_men$CS1_rec[pop_synt_men$CS1 == "2"] <- "Artisans"
@@ -355,28 +390,8 @@ pop_synt_men$prof<-case_when(pop_synt_men$CS1_rec=="Autre" & pop_synt_men$TACT =
                              pop_synt_men$CS1_rec=="Autre" & pop_synt_men$TACT == "24" ~ "Autres_inac",
                              pop_synt_men$CS1_rec=="Autre" & pop_synt_men$TACT == "25" ~ "Autres_inac", TRUE~ pop_synt_men$CS1_rec)
 
-
-# pop_synt_men$CS1_rec <- as.character(pop_synt_men$CS1)
-# pop_synt_men$CS1_rec[pop_synt_men$CS1 == "1"] <- "Empl"
-# pop_synt_men$CS1_rec[pop_synt_men$CS1 == "2"] <- "Empl"
-# pop_synt_men$CS1_rec[pop_synt_men$CS1 == "3"] <- "Empl"
-# pop_synt_men$CS1_rec[pop_synt_men$CS1 == "4"] <- "Empl"
-# pop_synt_men$CS1_rec[pop_synt_men$CS1 == "5"] <- "Empl"
-# pop_synt_men$CS1_rec[pop_synt_men$CS1 == "6"] <- "Empl"
-# pop_synt_men$CS1_rec[pop_synt_men$CS1 == "7"] <- "Empl"
-# pop_synt_men$CS1_rec[pop_synt_men$CS1 == "8"] <- "Autre"
-#
-# pop_synt_men$TACT<-as.character(pop_synt_men$TACT)
-#
-# pop_synt_men$prof<-case_when(pop_synt_men$CS1_rec=="Autre" & pop_synt_men$TACT == "12" ~ "Autres_inac",
-#                              pop_synt_men$CS1_rec=="Autre" & pop_synt_men$TACT == "22" ~ "Autres_inac",
-#                              pop_synt_men$CS1_rec=="Autre" & pop_synt_men$TACT == "21" ~ "Autres_inac",
-#                              pop_synt_men$CS1_rec=="Autre" & pop_synt_men$TACT == "24" ~ "Autres_inac",
-#                              pop_synt_men$CS1_rec=="Autre" & pop_synt_men$TACT == "25" ~ "Autres_inac", TRUE~ pop_synt_men$CS1_rec)
-
-
-table(pop_synt_men$prof)
-
+# test unitaire
+#table(pop_synt_men$prof)
 ```
 ### codage des voitures
 
@@ -390,131 +405,42 @@ pop_synt_final$Voit_rec[pop_synt_final$VOIT == "0"] <- "0voit"
 pop_synt_final$Voit_rec[pop_synt_final$VOIT == "1"] <- "1voit"
 pop_synt_final$Voit_rec[pop_synt_final$VOIT == "2"] <- "2voit"
 pop_synt_final$Voit_rec[pop_synt_final$VOIT == "3"] <- "3voit"
-
-# pop_synt_final$Voit_rec[pop_synt_final$VOIT == "1"] <- "1voit"
-# pop_synt_final$Voit_rec[pop_synt_final$VOIT == "2"] <- "1voit"
-# pop_synt_final$Voit_rec[pop_synt_final$VOIT == "3"] <- "1voit"
-
-#pop_synt_final<-pop_synt_final%>% select(-VOIT,)
-table(pop_synt_final$Voit_rec)
+# test unitaire
+#table(pop_synt_final$Voit_rec)
 ```
+# Calcul des contraintes
+
+## Mise en forme des données
+afin de construire les matrices
+
 ### Calcul des contraintes sur les fréquences des voitures
 
-Calcul des marginaux ? A vérfier
+Les marginaux sont stockés dans une table qui sera utilisé ultèrieurement
 
 ```{r marginal-data-computation}
-SFM_lv<-c("ATM", "CAE1","CAE2","CAE3", "CSE", "FM", "PS")
-# SFM_lv<-c("ATM", "CAE1","CSE", "FM", "PS")
-# SFM_lv<-c("ATM", "CAE1", "PS")
-Age_lv<-c("cat1",   "cat2",  "cat3",  "cat4", "cat5")
-# Age_lv<-c("cat1",   "cat2",  "cat3")
-
-Sex_lv<-c("Femme","Homme")
-
-Prof_lv<-c("Agri","Artisans", "Autres_inac","Cadres","Chom","Eleve"," Empl","Ouvriers","Prof_int","Retraite")
-#Prof_lv<-c("Agri","Artisans", "Cadres","Chom","Eleve"," Empl","Ouvriers","Retraite")  ATTENTION ERREUR AUTRE INAV NON PRIS EN COMPTE
-#Prof_lv<-c("Artisans", "Cadres","Chom","Eleve"," Empl","Retraite") IDEM
-#Prof_lv<-c("Cadres","Autres_inac","Empl","Retraite")
-#Prof_lv<-c("Autres_inac","Empl")
-
-
-Voit_lv<-c("0voit",  "1voit",  "2voit",  "3voit" )
-#Voit_lv<-c("0voit",  "1voit")
-donnees_aggr<-as.data.frame(matrix(nrow = 25, ncol = 4))
-# donnees_aggr<-as.data.frame(matrix(nrow = 21, ncol = 2))
-# donnees_aggr<-as.data.frame(matrix(nrow = 19, ncol = 2))
-# donnees_aggr<-as.data.frame(matrix(nrow = 17, ncol = 2))
-# donnees_aggr<-as.data.frame(matrix(nrow = 15, ncol = 2))
-# donnees_aggr<-as.data.frame(matrix(nrow = 13, ncol = 2))
-# donnees_aggr<-as.data.frame(matrix(nrow = 11, ncol = 2))
-SFM_ag<-(table(pop_synt_final$SFM_agg, pop_synt_final$Voit_rec))/nrow(pop_synt_final)
-Age_ag<-(table(pop_synt_final$AGEREVQb_rec, pop_synt_final$Voit_rec))/nrow(pop_synt_final)
-
-Sex_ag<-(table(pop_synt_final$sexe_rec, pop_synt_final$Voit_rec))/nrow(pop_synt_final)
-
-Prof_ag<-(table(pop_synt_final$prof, pop_synt_final$Voit_rec))/nrow(pop_synt_final)
-
-donnees_aggr[1,]<-(table(pop_synt_final$Voit_rec))/nrow(pop_synt_final)
-
-
-```
-## Création des labels
-
-
-```{r labels}
 #Création de labels
 
 SFM_lv<-c("ATM", "CAE1","CAE2","CAE3", "CSE", "FM", "PS")
-#SFM_lv<-c("ATM", "CAE1","CSE", "FM", "PS")
-#SFM_lv<-c("ATM", "CAE1","PS")
-
 Age_lv<-c("cat1",   "cat2",  "cat3",  "cat4", "cat5")
-#Age_lv<-c("cat1",   "cat2",  "cat3")
-
 Sex_lv<-c("Femme","Homme")
-
 Prof_lv<-c("Agri","Artisans", "Autres_inac","Cadres","Chom","Eleve"," Empl","Ouvriers","Prof_int","Retraite")
-#Prof_lv<-c("Agri","Artisans", "Autres_inac","Cadres","Eleve"," Empl","Ouvriers","Retraite")
-#Prof_lv<-c("Artisans", "Autres_inac","Cadres","Eleve"," Empl","Retraite")
-#Prof_lv<-c("Cadres","Autres_inac","Empl","Retraite")
-#Prof_lv<-c("Autres_inac","Empl")
-
 Voit_lv<-c("0voit",  "1voit",  "2voit",  "3voit" )
-#Voit_lv<-c("0voit",  "1voit")
-
 donnees_aggr<-as.data.frame(matrix(nrow = 25, ncol = 4))
-# donnees_aggr<-as.data.frame(matrix(nrow = 23, ncol = 2))
-# donnees_aggr<-as.data.frame(matrix(nrow = 21, ncol = 2))
-# donnees_aggr<-as.data.frame(matrix(nrow = 19, ncol = 2))
-# donnees_aggr<-as.data.frame(matrix(nrow = 17, ncol = 2))
-# donnees_aggr<-as.data.frame(matrix(nrow = 15, ncol = 2))
-# donnees_aggr<-as.data.frame(matrix(nrow = 13, ncol = 2))
-# donnees_aggr<-as.data.frame(matrix(nrow = 11, ncol = 2))
 SFM_ag<-(table(pop_synt_final$SFM_agg, pop_synt_final$Voit_rec))/nrow(pop_synt_final)
-
 Age_ag<-(table(pop_synt_final$AGEREVQb_rec, pop_synt_final$Voit_rec))/nrow(pop_synt_final)
-
 Sex_ag<-(table(pop_synt_final$sexe_rec, pop_synt_final$Voit_rec))/nrow(pop_synt_final)
-
 Prof_ag<-(table(pop_synt_final$prof, pop_synt_final$Voit_rec))/nrow(pop_synt_final)
-
 donnees_aggr[1,]<-(table(pop_synt_final$Voit_rec))/nrow(pop_synt_final)
-
-
 donnees_aggr[c(2:8),]<-SFM_ag
 donnees_aggr[(9:13),]<-Age_ag
 donnees_aggr[(14:15),]<-Sex_ag
 donnees_aggr[(16:25),]<-Prof_ag
-#donnees_aggr[c(2:6),]<-SFM_ag
-#donnees_aggr[(7:11),]<-Age_ag
-#donnees_aggr[(12:13),]<-Sex_ag
-#donnees_aggr[(14:23),]<-Prof_ag
-
-#donnees_aggr[c(2:6),]<-SFM_ag
-#donnees_aggr[(7:9),]<-Age_ag
-#donnees_aggr[(10:11),]<-Sex_ag
-#donnees_aggr[(12:21),]<-Prof_ag
-#donnees_aggr[(12:17),]<-Prof_ag
-#donnees_aggr[(12:15),]<-Prof_ag
-
-#donnees_aggr[c(2:4),]<-SFM_ag
-#donnees_aggr[(5:7),]<-Age_ag
-#donnees_aggr[(8:9),]<-Sex_ag
-#donnees_aggr[(10:13),]<-Prof_ag
-
-# donnees_aggr[c(2:4),]<-SFM_ag
-# donnees_aggr[(5:7),]<-Age_ag
-# donnees_aggr[(8:9),]<-Sex_ag
-# donnees_aggr[(10:11),]<-Prof_ag
-
-
 row.names(donnees_aggr)<-c("Ensemble",SFM_lv,Age_lv,Sex_lv,Prof_lv)
-
 names(donnees_aggr)<-Voit_lv
 
-donnees_aggr*100 # Tableau agrégé de voitures croisé avec les autres variables. Il S'agit des contraintes sur les fréqeunces des voitures
-Prof_ag
-
+# Test unitaire
+#donnees_aggr*100 # Tableau agrégé de voitures croisé avec les autres variables. Il S'agit des contraintes sur les fréqeunces des voitures
+#Prof_ag
 ```
 * EX : ligne 1 : 14% des ménages n'ont aucune voiture,  47 % 1 voiture...
 * Ex :ligne 3 :  la proportion des ménages "couple avec 1 enfant" (CAE1) ) et qui ont 0 voiture est de 0,23%
@@ -528,8 +454,6 @@ En termes de probabilités jointes, nous avons :
 * grâce à la population synthétique, nous pouvons calculer les probabilités de
 structure familiale* age * sexe * prof*= $7\times5\times2\times10 = 700$
 
-### Note
-nous avons restreint drastiquement le nombre de variables...
 
 ```{r joined-frequency}
 pop_trav<-pop_synt_final%>%
@@ -555,18 +479,13 @@ proba_jointes<-pop_trav%>%
 # le dataframe proba jointes contient les valeurs non nulles des probabilités des croisements entre
 # les variables structures familiale*age*sexe*prof. On avait au départ 700 probabilités et nous avons au final 522 probabilités valides.
 
-
-sum(proba_jointes$proba)
-
-head(proba_jointes)
-
+# Test unitaire
+#sum(proba_jointes$proba)
+#head(proba_jointes)
 ```
 
 ## calcul de la vraie solution
 fréquence jointe socioprofessionnelle croisée avec le nombre de voiture
-
-### Note
-Nous avons réduit le nombre de variables et de contraitnes
 
 ```{r true-solution}
 pop_trav2<-pop_synt_final%>%
@@ -590,15 +509,14 @@ proba_jointes2<-pop_trav2%>%
   inner_join(synt_pop_comb2, by="concat")%>%
   select(concat,proba)
 
-head(proba_jointes2)
-
-sum(proba_jointes2$proba)
+#head(proba_jointes2)
+#sum(proba_jointes2$proba)
 
 # De 2800 variables d'intérêt, nous avons finalement 1662 variables d'intérêt
 ```
 Les dataframes à utiliser sont donnees_agr, proba_jointes et proba_jointes2.
 
-# Calcul des contraintes
+## Calcul des matrices des contraintes
 
 on cherche la probabilité d'une modalité croisée intersection avec le nombre de voiture. $ P( M_k \cap V_l)$
 
@@ -635,9 +553,7 @@ proabilité d'être un couple dans enfant et d'avoir zéro voiture : cela est ca
 
 Attention, compte tenu du nombre de modalités croisés 700, est-ce qu'il est possible qu'il y ait des modalités croisés dans lesquelles il n'y a pas de ménage.
 
-### Note
-ces nombres ont changé car nous avions des singularités numériques donc nous avons diminué le nombre de variables et de contraintes
-
+## Calcul de la matrice des constraintes sur les probabilités jointes
 ```{r cross-socioprofessional-constraints}
 name_variable_aggregate_data<-row.names(donnees_aggr)
 name_modalities_vehicle<-colnames(donnees_aggr)
@@ -668,6 +584,7 @@ for (o in seq(1,n_variable_aggregate_data)) {
 }
 
 ```
+## Calcul de la matrice des contraintes sur les marginaux des véhicules
 ```{r marginal-vehicle-constraints}
 name_cross_modalities <- proba_jointes[,"concat"];
 n_cross_modalities    <- length(name_cross_modalities) # au final 522 probabilités valides
@@ -692,7 +609,7 @@ for (o in seq(1,n_cross_modalities)) {
 ```
 
 
-Aggrégation de toutes les contraintes
+## Aggrégation de toutes les contraintes
 
 ```{r all-constraints-concatenation}
 Mom=rbind(rep(1,n_variable_of_interest), Magr, Mc)
@@ -710,7 +627,7 @@ nrow(Mom)
 A$rank
 ```
 
-# vérification que le système est compatible
+## vérification que le système est compatible
 
 ```{r simplex}
 M=dim(Mom[I,])
@@ -724,7 +641,8 @@ a=Coef_objectif,
 A3=M_equation, #contraines
 b3=Eta[I])
 ```
-Structure
+
+Voci la sortie du simplexe
 
 Objects of class "simplex" are implemented as a list with the following components.
 
@@ -761,23 +679,31 @@ expressed as the equalities A1%*%x + slack = b1.
 ## Analyse des résultats trouvés par le simplexe
 
 ```{r simplex-results-analysis}
-result$solved # = -1 No feasabile solution, alors que la solution proba_jointe2 existe !!!!!! Ajouter des
-result$soln[(mc+1):(mc+ml)] # dpot vampor 0
+result$solved # = -1 No feasabile solution, alors que la solution proba_jointe2 existe !!!!!!
+# test unitaire
+# result$soln[(mc+1):(mc+ml)]
 Eta_computed_with_initial_proba = Mom%*%proba_jointes2[,"proba"]
 Eta_computed_with_simplex = Mom%*%result$soln[1:mc]
 compare = c(norm(Eta-Eta_computed_with_initial_proba)/norm(Eta), norm(Eta-Eta_computed_with_simplex)/norm(Eta))
 compare_termbyterm = cbind(Eta_computed_with_initial_proba, Eta, Eta_computed_with_simplex )
-compare
-compare_termbyterm
+
+# Test unitaire
+#compare
+#compare_termbyterm
 ```
+Le simplexe ne trouve pas de solution alors que la solution vraie vérifie évidemment les contraintes !
+Il fournit une solution proche des contraintes qui pourrait être intéressante pour la comparer à la solution estimée
 
-# Tests
 
-### Test 28 SEPTEMBRE :
+# Estimation de la probabilité jointe et comparaison avec la solution réelles
+
+##   Estimation de la probabilité jointe par maximisation de l'entropie
+
+* Test 28 SEPTEMBRE :
 système singulier... GRRRRRRR, il faut regarder
 https://github.com/PierreOlivierVandanjon/methodology_motor_housing/blob/main/methodoloy_motor_housing.Rmd
 
-### Test 14 OCTOBRE :
+* Test 14 OCTOBRE :
 passage de google colab vers github.
 Lorsque
 * p_init est égal à la 1/n;système singulier : Erreur dans solve.default(W) :
@@ -791,14 +717,14 @@ J'ai essayé de jouer sur les valeurs initiales des multiplicateurs de Lagranges
 
 En conclusion, il faut passer à autre chose que minxent comme ce que nous avons fait avec Tellae sous Python
 
-### Test 17 OCTOBRE
+* Test 17 OCTOBRE
 j'ai modifié la fonction minxent en minxent.pov, les résultats sont OK :
 
 * Je suis parti du cas
   ** 3 structures familales : ATM CAE1 PS,
   ** 3 catégories d'age,
   ** 2 pour la catégorie sexe,
-  ** 2 pour la catégorie Profession  
+  ** 2 pour la catégorie Profession
   ** 2 modalités pour les voitures
 
 72 probabilité à prévoir
@@ -806,22 +732,16 @@ j'ai modifié la fonction minxent en minxent.pov, les résultats sont OK :
 10 marginaux
 
 
-* étape suivante :
-  la totale
+* Test 21 octobre
+  Après correction des bogues, cela fonctionne ! Evaluation de la solution selon plusieurs critères
+  ** Goodness of Fit : cela revient à faire un test de Binomiale (à confrmer)
+  ** Divergence de Kullback Leibler : la limite est zéro
+  ** norme L2 pour exprimer un pourcentage d'erreur sur la norme de la solution, on met aussi cette norme au carré pour exprimer une sorte de 1-R2 (qui peut être négatif...)
+  ** norme L1 pour exprimer une erreur en poucentage : nmoyenne des erreurs sur moyennes des probas
+  ** norme L2 sur l'erreur par rapport aux marginaux : cela exprime un pourcentage de la norme de l'erreur par rapport à la norme des marginaux.
 
-### A Faire
-*  problème sur le test comple
-> compare
-[1] 0.6540031 0.7403210
-=> l'aggrégation n'est pas bien calculé
-
- * vérifier que la solution fruste respecte les contraintes
-
-* Utiliser Goodness of Fit pour calculer la distance à la probabilité solution
-
-* Utiliser  Kullback Leibler pour calculer la distance à la proba solution
-
-* Utiliser une distance vue pendant l'école d'été transport optimal
+* A Faire
+ Utiliser une distance vue pendant l'école d'été transport optimal
 
 
 ```{r true-probability-lenght}
@@ -829,17 +749,68 @@ length(proba_jointes2[,"proba"])
 ```
 ```{r entropy-maximisation}
 p_init=rep(as.double(1/n_variable_of_interest), n_variable_of_interest)
-#p_init=proba_jointes2[,"proba"]
-#p_init=result$soln[1:mc]
-Sortie=minxent.multiple_pov(q=p_init,G=Mom[I,],eta=Eta[I],lambda=c(rep(0, length(I)-1)))
-Sortie
-result$soln[1:mc]
-proba_jointes2[,"proba"]
+
+proba_true <- matrix(proba_jointes2[,"proba"],ncol = 1)
+iteration_to_analyse <- c(100,200,300,500,750,1000,1500,2000,3000, 5000)
+goodness_of_fit <- rep(-1,length(iteration_to_analyse))
+divergence <- rep(0,length(iteration_to_analyse))
+compare_eta_minxent <- rep(-1,length(iteration_to_analyse))
+compare_proba_L2<- rep(-1,length(iteration_to_analyse))
+Rdeux<- rep(-1,length(iteration_to_analyse))
+compare_proba_L1<- rep(-1,length(iteration_to_analyse))
+o<-0
+for (iteration_max in iteration_to_analyse) {
+  o<-o+1
+  Sortie=minxent.multiple_pov(q=p_init,G=Mom[I,],eta=Eta[I],lambda=c(rep(0, length(I)-1)), maxiter = iteration_max)
+  probability_estimate <- matrix(Sortie$Estimates,ncol=1,nrow=length(Sortie$Estimates))
+  r_proba <- probability_estimate/proba_true
+  df_proba <- probability_estimate-proba_true
+  dfr_proba <- r_proba - 1
+  compare_proba_L2[o]<-norm(df_proba)/norm(proba_true)
+  Rdeux[o]<-1-compare_proba_L2[o]^2
+  compare_proba_L1[o]=sum(abs(df_proba))
+  goodness_of_fit[o] <- t(df_proba)%*%dfr_proba
+  divergence[o] <- t(probability_estimate)%*%log(r_proba)
+  Eta_computed_with_entropy = Mom%*%probability_estimate
+  compare_eta_minxent[o] = norm(Eta-Eta_computed_with_entropy)/norm(Eta)
+}
+# Test unitaore
+#result$soln[1:mc]
+#proba_jointes2[,"proba"]
+
+# calcul des critères pour la solution obtenue avec le simplexe
+proba_simplex <-  matrix(result$soln[1:mc], ncol=1)
+o<-o+1
+r_proba_simplex <- proba_simplex/proba_true
+df_proba_simplex <- proba_simplex-proba_true
+dfr_proba_simplex <- r_proba_simplex - 1
+compare_proba_L2[o]<-norm(df_proba_simplex)/norm(proba_true)
+Rdeux[o]<-1-compare_proba_L2[o]^2
+compare_proba_L1[o]=sum(abs(df_proba_simplex))
+goodness_of_fit[o] <- t(df_proba_simplex)%*%dfr_proba_simplex
+divergence[o] <- t(proba_simplex)%*%log(r_proba_simplex)
+compare_eta_minxent[o] = norm(Eta-Eta_computed_with_simplex)/norm(Eta)
+
+# affichage des différents critères
+print(Rdeux, digits=4)
+print(compare_proba_L2,digits=2)
+print(compare_proba_L1,digits=2)
+print(goodness_of_fit,digits=2)
+print(divergence,digits=2)
+print(compare_eta_minxent,digits=2)
 ```
-```{r check-solution-consistent-with-constraints}
-Eta_computed_with_entropy = Mom%*%matrix(Sortie$Estimates,ncol=1,nrow=length(Sortie$Estimates))
-compare = c(norm(Eta-Eta_computed_with_initial_proba)/norm(Eta), norm(Eta-Eta_computed_with_entropy)/norm(Eta))
-compare_termbyterm = cbind(Eta_computed_with_initial_proba, Eta, Eta_computed_with_entropy )
-compare
-compare_termbyterm
-```
+## Analyse des résultats
+
+iteration analysée :  (100,200,300,500,750,1000,1500,2000,3000,5000) ce qui donnne 10 estimations
+La 11ème colonne correspond au résultat obtenu avec le simplexe, c'est intéressant à comparer car la différence justifie que notre raisonnement théorique sur les binomiales qui mènent à l'optimisation de l'entropie.
+
+* R2 de 0.98, c'est bien
+* compare_proba_L2 : 88 % de  la norme est expliqué
+*  compare proba L1 ;  on fait une erreur de 12% en moyenne sur les proba réelles, le simplexe de 100% ce qui justifie bien notre critère de minimisation
+*  goodness of fit : à interpréter du point de vue du khi deux, mais  nous allons trouver une p-value de j'imagine 1%
+*  divergence : à interpréter, le simplexe part à l'infini car il a beaucoup de probabilité à zéro
+*  compare eta minxent : erreur sur les marginaux de 0.5%, c'est beaucoup mieux que le simplexe qui est pourtant conçu pour trouver une solution compatible
+
+Attention, ce n'est pas une analyse classique, car la solution réelle n'est pas la solution du problème d'optimisation. Nous sommes vraiment dans un processus d'estimation, on compare ici des estimées obtenues à différentes étapes.
+
+Le fait que les résultats s'améliorent quand la fonction objectif s'améliore justifient notre raisonnement théorique.
