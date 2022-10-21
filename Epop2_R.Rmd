@@ -23,8 +23,8 @@ En résumé, nous vérifions la pertinence de l'estimation par l'algorithme avec
 
 Le document est divisé dans les parties suivantes
 * Préparer l'environnement de travail en chargeant les données et les librairies R, le recodage des variables et les valeurs réelles des probabilités jointes
-* Construires la matrice contrainte
-* Une partie Test où nous testons l'algorithme d'optimisation de maximisation de l'entropie (ou de minimisation de l'entropie croisée)  et nous évaluons la solution trouvées
+* Construire la matrice contrainte
+* Estmation où nous testons l'algorithme d'optimisation de maximisation de l'entropie (ou de minimisation de l'entropie croisée)  et nous évaluons la solution trouvées
 
 
 ## Historique
@@ -33,7 +33,7 @@ Le document est divisé dans les parties suivantes
  * Le courriel contient un script script :recodage_population_synth_dep44.R qui est repris ici pour traiter les données
 * Ce document a d'abord pris la forme d'un jupyter R sous google colab mais c'était assez lourd à utiliser car il fallait réinstaller régulièrement les librairies, ce qui étaient long, et recharger les données, ce qui n'était pas trop long mais qui devait passer par le compte google de Pierre-Olivier Vandanjon.
 * Nous sommes passés à un Rmarkdown hebergé sous github. Il se lance sous R en tapant la commande rmarkdown::render('Epop_R.Rmd')
-* Nous avons eu des erreurs avec minxen.
+* Nous avons eu des erreurs avec minxent
 Nous avons un problème numérique de système singulier. Nous pensions que cela provenait du nombre de variables et de contraintes. Mais même avec un système très frustre de 72 variables et de 43 contraintes, nous avons un problème de singularité numérique dans la partie du calcul du Hessien
 * calcul du Hessien
 Tout d'abord, le premier test a consisté à robustifier le calcul du Hessien. En effet, un Hessien singulier ne doit pas empêcher une minimisation. Le travail a consisté à augmenter les plus petites valeurs propres pour obtenir un conditionnement contrôlé.
