@@ -58,7 +58,7 @@ https://askcodez.com/verifier-si-r-package-est-installe-puis-en-charge-de-la-bib
 ```{r install-librairies}
 check.and.install.packages<-function(package_name){
     if(!package_name%in%installed.packages()){
-        install.packages(package_name)
+        install.packages(package_name, repos = "https://cran.irsn.fr/")
     }
 }
 check.and.install.packages("R.utils")
@@ -263,7 +263,7 @@ install.packages("minxent") Minxent n'est plus maintenu dans le CRAN, c'est pour
 On charge les données
 
 ```{r data-download}
- pop_synt_all<-read_feather("~/Downloads/pop_synt_ipondi_TRS_pvm.feather") %>%
+ pop_synt_all<-read_feather("pop_synt_ipondi_TRS_pvm.feather") %>%
   as.data.frame()
   pop_synt_men<-pop_synt_all%>%
     mutate(LPRM=as.character(LPRM))%>%
@@ -290,7 +290,7 @@ On charge les données
 * CAE3 : Couple avec trois enfants ou plus
 * ATM : Autre type de ménage
 
- ```{r data-recode-family}
+```{r data-recode-family}
 pop_synt_men$SFM_agg<- case_when(pop_synt_men$SFMb=="11"|pop_synt_men$SFMb== "12" ~ "PS",
                                  pop_synt_men$SFMb=="21"|pop_synt_men$SFMb=="22"|pop_synt_men$SFMb=="40"~ "FM",
                                  pop_synt_men$SFMb=="30"|pop_synt_men$SFMb=="51"|pop_synt_men$SFMb=="52" ~ "CSE",
@@ -752,25 +752,35 @@ p_init=rep(as.double(1/n_variable_of_interest), n_variable_of_interest)
 
 proba_true <- matrix(proba_jointes2[,"proba"],ncol = 1)
 iteration_to_analyse <- c(100,200,300,500,750,1000,1500,2000,3000, 5000)
-goodness_of_fit <- rep(-1,length(iteration_to_analyse))
-divergence <- rep(0,length(iteration_to_analyse))
-compare_eta_minxent <- rep(-1,length(iteration_to_analyse))
-compare_proba_L2<- rep(-1,length(iteration_to_analyse))
-Rdeux<- rep(-1,length(iteration_to_analyse))
-compare_proba_L1<- rep(-1,length(iteration_to_analyse))
+iteration_to_analyse <- c(5000)
+goodness_of_fit <- rep(-1,length(iteration_to_analyse)+1)
+p_value<-rep(-1,length(iteration_to_analyse)+1)
+mape <- rep(-1,length(iteration_to_analyse)+1)
+divergence <- rep(0,length(iteration_to_analyse)+1)
+compare_eta_minxent <- rep(-1,length(iteration_to_analyse)+1)
+compare_proba_L2<- rep(-1,length(iteration_to_analyse)+1)
+Rdeux<- rep(-1,length(iteration_to_analyse)+1)
+compare_proba_L1<- rep(-1,length(iteration_to_analyse)+1)
 o<-0
 for (iteration_max in iteration_to_analyse) {
   o<-o+1
+  startTime <- Sys.time()
   Sortie=minxent.multiple_pov(q=p_init,G=Mom[I,],eta=Eta[I],lambda=c(rep(0, length(I)-1)), maxiter = iteration_max)
+  endTime <- Sys.time()
+  duration<-endTime-startTime
   probability_estimate <- matrix(Sortie$Estimates,ncol=1,nrow=length(Sortie$Estimates))
-  r_proba <- probability_estimate/proba_true
+  chi2 <- chisq.test(proba_true, probability_estimate)
+  r_proba <- proba_true/probability_estimate
   df_proba <- probability_estimate-proba_true
+  df_proba_square <- df_proba*df_proba
   dfr_proba <- r_proba - 1
+  p_value[o]  <- chi2$p.value
+  mape[o]<-mean(abs(df_proba)/proba_true)
   compare_proba_L2[o]<-norm(df_proba)/norm(proba_true)
   Rdeux[o]<-1-compare_proba_L2[o]^2
   compare_proba_L1[o]=sum(abs(df_proba))
-  goodness_of_fit[o] <- t(df_proba)%*%dfr_proba
-  divergence[o] <- t(probability_estimate)%*%log(r_proba)
+  goodness_of_fit[o] <-sum(df_proba_square/proba_true)
+  divergence[o] <- t(proba_true)%*%log(r_proba)
   Eta_computed_with_entropy = Mom%*%probability_estimate
   compare_eta_minxent[o] = norm(Eta-Eta_computed_with_entropy)/norm(Eta)
 }
@@ -781,21 +791,76 @@ for (iteration_max in iteration_to_analyse) {
 # calcul des critères pour la solution obtenue avec le simplexe
 proba_simplex <-  matrix(result$soln[1:mc], ncol=1)
 o<-o+1
-r_proba_simplex <- proba_simplex/proba_true
+chi2 <- chisq.test(proba_true, proba_simplex)
+r_proba_simplex <- proba_true/proba_simplex
 df_proba_simplex <- proba_simplex-proba_true
+df_proba_simplex_square <- df_proba_simplex*df_proba_simplex
 dfr_proba_simplex <- r_proba_simplex - 1
+p_value[o]  <- chi2$p.value
+mape[o]<-mean(abs(df_proba_simplex)/proba_true)
 compare_proba_L2[o]<-norm(df_proba_simplex)/norm(proba_true)
 Rdeux[o]<-1-compare_proba_L2[o]^2
 compare_proba_L1[o]=sum(abs(df_proba_simplex))
-goodness_of_fit[o] <- t(df_proba_simplex)%*%dfr_proba_simplex
-divergence[o] <- t(proba_simplex)%*%log(r_proba_simplex)
+goodness_of_fit[o] <-sum(df_proba_simplex_square/proba_true)
+divergence[o] <- t(proba_true)%*%log(r_proba_simplex)
 compare_eta_minxent[o] = norm(Eta-Eta_computed_with_simplex)/norm(Eta)
 
+
+
+# Solition issue du simplexe dont aucune proba n'est nulle cela ne fonctionne pas.car la contrainte d'égalité rend le système difficilee à résoudre pour ce type d'algoritheem
+# delta_c <- 0.08
+# delta_positif<-0.000001
+# delta_fonction<-1
+# fr <- function(x) {-sum(log(x+delta_fonction))}
+# dfr <- function(x) {-matrix(rep(1,length(x)),nrow=1)/matrix(x+delta_fonction,nrow = 1)}
+# ui <- rbind(Mom[I,],-Mom[I,], diag(ncol(Mom)))
+# ci <- rbind(matrix(Eta[I] - delta_c, ncol=1),-matrix(Eta[I] + delta_c  ,ncol=1), matrix(ncol=1, rep(-delta_positif, ncol(Mom)))) 
+# 
+# solution_not_null<-constrOptim(theta=proba_simplex, f=fr,  grad=dfr, ui=ui, ci=ci)
+# o<-o+1
+# proba_simplex_nl <- solution_not_null$par
+# chi2 <- chisq.test(proba_true, proba_simplex_nl)
+# r_proba_simplex_nl <- proba_true/proba_simplex_nl
+# df_proba_simplex_nl <- proba_simplex_nl-proba_true
+# df_proba_simplex_square_nl <- df_proba_simplex_nl*df_proba_simplex_nl
+# dfr_proba_simplex_nl <- r_proba_simplex_nl - 1
+# p_value[o]  <- chi2$p.value
+# mape[o]<-mean(abs(df_proba_simplex_nl)/proba_true)
+# compare_proba_L2[o]<-norm(df_proba_simplex_nl)/norm(proba_true)
+# Rdeux[o]<-1-compare_proba_L2[o]^2
+# compare_proba_L1[o]=sum(abs(df_proba_simplex_nl))
+# goodness_of_fit[o] <-sum(df_proba_simplex_square_nl/proba_true)
+# divergence[o] <- t(proba_true)%*%log(r_proba_simplex_nl)
+# Eta_computed_with_simplex_nl = Mom%*%proba_simplex_nl
+# compare_eta_minxent[o] = norm(Eta-Eta_computed_with_simplex_nl)/norm(Eta)
+
+
+
+# calcul d'une solution compatible dont aucune probabilité est nulle afin de pouvoir calculer une divergence de kullback leibler. la valeur minimale est fixée au min des fréquencdes des modalités croisées x le min des modalités aggrégées
+# ALGORITHME QUI NE CONVERGE PAS !!!
+# M=dim(Mom[I,])
+# mc=M[2] # nombre de colonne, c'est aussi le nombre de variable
+# ml=M[1]
+# minimal_value = min(Eta)*min(proba_jointes[,"proba"])
+# Coef_objectif=c(rep(0,mc), rep(1,ml)) # fonction objectif
+# Id=diag(rep(1,ml))
+# M_equation= cbind(Mom[I,], Id)
+# result=simplex(
+# a=Coef_objectif,
+# A3=M_equation, #contraines
+# b3=Eta[I],
+# A2=diag(nrow=(mc+ml)),
+# b2=matrix(c(minimal_value*rep(1,mc), rep(0,ml)),ncol=1)
+# )
+
 # affichage des différents critères
+print(duration)
+print(p_value, digits=2)
+print(mape, digits=4)
 print(Rdeux, digits=4)
 print(compare_proba_L2,digits=2)
 print(compare_proba_L1,digits=2)
-print(goodness_of_fit,digits=2)
+print(goodness_of_fit,digits=8)
 print(divergence,digits=2)
 print(compare_eta_minxent,digits=2)
 ```
