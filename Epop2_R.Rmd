@@ -782,7 +782,7 @@ for (iteration_max in iteration_to_analyse) {
   compare_proba_L2[o]<-norm(df_proba)/norm(proba_true)
   Rdeux[o]<-1-compare_proba_L2[o]^2
   compare_proba_L1[o]=sum(abs(df_proba))
-  goodness_of_fit[o] <-sum(df_proba_square/proba_true)
+  goodness_of_fit[o] <-sum(df_proba_square/probability_estimate)
   divergence[o] <- t(proba_true)%*%log(r_proba)
   Eta_computed_with_entropy = Mom%*%probability_estimate
   compare_eta_minxent[o] = norm(Eta-Eta_computed_with_entropy)/norm(Eta)
@@ -793,6 +793,7 @@ for (iteration_max in iteration_to_analyse) {
 
 # calcul des critères pour la solution obtenue avec le simplexe
 proba_simplex <-  matrix(result$soln[1:mc], ncol=1)
+
 o<-o+1
 chi2 <- chisq.test(nagents*proba_true, p=proba_simplex, rescale.p=TRUE)
 r_proba_simplex <- proba_true/proba_simplex
@@ -804,10 +805,18 @@ mape[o]<-mean(abs(df_proba_simplex)/proba_true)
 compare_proba_L2[o]<-norm(df_proba_simplex)/norm(proba_true)
 Rdeux[o]<-1-compare_proba_L2[o]^2
 compare_proba_L1[o]=sum(abs(df_proba_simplex))
-goodness_of_fit[o] <-sum(df_proba_simplex_square/proba_true)
+goodness_of_fit[o] <-sum(df_proba_simplex_square/proba_simplex)
 divergence[o] <- t(proba_true)%*%log(r_proba_simplex)
 compare_eta_minxent[o] = norm(Eta-Eta_computed_with_simplex)/norm(Eta)
 
+
+
+# Modification du simplex pour mettre les valeurs nulles à des valeurs petites mais compatibles
+epsilon_value <- min(Eta)*min(proba_jointes[,"proba"])/10
+n_zero_value <- sum(proba_simplex < epsilon_value)
+minimal_value <- (1-sum(proba_simplex))/n_zero_value
+proba_simplex_nl <- proba_simplex
+proba_simplex_nl[proba_simplex < epsilon_value] <- minimal_value
 
 
 # Solition issue du simplexe dont aucune proba n'est nulle cela ne fonctionne pas.car la contrainte d'égalité rend le système difficilee à résoudre pour ce type d'algoritheem
@@ -822,20 +831,23 @@ compare_eta_minxent[o] = norm(Eta-Eta_computed_with_simplex)/norm(Eta)
 # solution_not_null<-constrOptim(theta=proba_simplex, f=fr,  grad=dfr, ui=ui, ci=ci)
 # o<-o+1
 # proba_simplex_nl <- solution_not_null$par
-# chi2 <- chisq.test(proba_true, proba_simplex_nl)
-# r_proba_simplex_nl <- proba_true/proba_simplex_nl
-# df_proba_simplex_nl <- proba_simplex_nl-proba_true
-# df_proba_simplex_square_nl <- df_proba_simplex_nl*df_proba_simplex_nl
-# dfr_proba_simplex_nl <- r_proba_simplex_nl - 1
-# p_value[o]  <- chi2$p.value
-# mape[o]<-mean(abs(df_proba_simplex_nl)/proba_true)
-# compare_proba_L2[o]<-norm(df_proba_simplex_nl)/norm(proba_true)
-# Rdeux[o]<-1-compare_proba_L2[o]^2
-# compare_proba_L1[o]=sum(abs(df_proba_simplex_nl))
-# goodness_of_fit[o] <-sum(df_proba_simplex_square_nl/proba_true)
-# divergence[o] <- t(proba_true)%*%log(r_proba_simplex_nl)
-# Eta_computed_with_simplex_nl = Mom%*%proba_simplex_nl
-# compare_eta_minxent[o] = norm(Eta-Eta_computed_with_simplex_nl)/norm(Eta)
+
+# calcul des critères pour la solution obtenue avec le simplexe dont certaines valeurs sont non nulles
+o<-o+1
+chi2 <- chisq.test(nagents*proba_true, proba_simplex_nl)
+r_proba_simplex_nl <- proba_true/proba_simplex_nl
+df_proba_simplex_nl <- proba_simplex_nl-proba_true
+df_proba_simplex_square_nl <- df_proba_simplex_nl*df_proba_simplex_nl
+dfr_proba_simplex_nl <- r_proba_simplex_nl - 1
+p_value[o]  <- chi2$p.value
+mape[o]<-mean(abs(df_proba_simplex_nl)/proba_simplex_nl)
+compare_proba_L2[o]<-norm(df_proba_simplex_nl)/norm(proba_true)
+Rdeux[o]<-1-compare_proba_L2[o]^2
+compare_proba_L1[o]=sum(abs(df_proba_simplex_nl))
+goodness_of_fit[o] <-sum(df_proba_simplex_square_nl/proba_simplex_nl)
+divergence[o] <- t(proba_true)%*%log(r_proba_simplex_nl)
+Eta_computed_with_simplex_nl = Mom%*%proba_simplex_nl
+compare_eta_minxent[o] = norm(Eta-Eta_computed_with_simplex_nl)/norm(Eta)
 
 
 

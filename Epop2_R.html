@@ -1165,7 +1165,7 @@ for (iteration_max in iteration_to_analyse) {
   compare_proba_L2[o]&lt;-norm(df_proba)/norm(proba_true)
   Rdeux[o]&lt;-1-compare_proba_L2[o]^2
   compare_proba_L1[o]=sum(abs(df_proba))
-  goodness_of_fit[o] &lt;-sum(df_proba_square/proba_true)
+  goodness_of_fit[o] &lt;-sum(df_proba_square/probability_estimate)
   divergence[o] &lt;- t(proba_true)%*%log(r_proba)
   Eta_computed_with_entropy = Mom%*%probability_estimate
   compare_eta_minxent[o] = norm(Eta-Eta_computed_with_entropy)/norm(Eta)
@@ -1178,6 +1178,7 @@ for (iteration_max in iteration_to_analyse) {
 
 # calcul des critères pour la solution obtenue avec le simplexe
 proba_simplex &lt;-  matrix(result$soln[1:mc], ncol=1)
+
 o&lt;-o+1
 chi2 &lt;- chisq.test(nagents*proba_true, p=proba_simplex, rescale.p=TRUE)</code></pre>
 <pre><code>## Warning in chisq.test(nagents * proba_true, p = proba_simplex, rescale.p =
@@ -1191,10 +1192,18 @@ mape[o]&lt;-mean(abs(df_proba_simplex)/proba_true)
 compare_proba_L2[o]&lt;-norm(df_proba_simplex)/norm(proba_true)
 Rdeux[o]&lt;-1-compare_proba_L2[o]^2
 compare_proba_L1[o]=sum(abs(df_proba_simplex))
-goodness_of_fit[o] &lt;-sum(df_proba_simplex_square/proba_true)
+goodness_of_fit[o] &lt;-sum(df_proba_simplex_square/proba_simplex)
 divergence[o] &lt;- t(proba_true)%*%log(r_proba_simplex)
 compare_eta_minxent[o] = norm(Eta-Eta_computed_with_simplex)/norm(Eta)
 
+
+
+
+epsilon_value &lt;- min(Eta)*min(proba_jointes[,&quot;proba&quot;])
+n_zero_value &lt;- sum(proba_simplex &lt; epsilon_value)
+minimal_value &lt;- (1-sum(proba_simplex))/n_zero_value
+proba_simplex_nl &lt;- proba_simplex
+proba_simplex_nl[proba_simplex &lt; epsilon_value] &lt;- minimal_value
 
 
 # Solition issue du simplexe dont aucune proba n&#39;est nulle cela ne fonctionne pas.car la contrainte d&#39;égalité rend le système difficilee à résoudre pour ce type d&#39;algoritheem
@@ -1209,20 +1218,25 @@ compare_eta_minxent[o] = norm(Eta-Eta_computed_with_simplex)/norm(Eta)
 # solution_not_null&lt;-constrOptim(theta=proba_simplex, f=fr,  grad=dfr, ui=ui, ci=ci)
 # o&lt;-o+1
 # proba_simplex_nl &lt;- solution_not_null$par
-# chi2 &lt;- chisq.test(proba_true, proba_simplex_nl)
-# r_proba_simplex_nl &lt;- proba_true/proba_simplex_nl
-# df_proba_simplex_nl &lt;- proba_simplex_nl-proba_true
-# df_proba_simplex_square_nl &lt;- df_proba_simplex_nl*df_proba_simplex_nl
-# dfr_proba_simplex_nl &lt;- r_proba_simplex_nl - 1
-# p_value[o]  &lt;- chi2$p.value
-# mape[o]&lt;-mean(abs(df_proba_simplex_nl)/proba_true)
-# compare_proba_L2[o]&lt;-norm(df_proba_simplex_nl)/norm(proba_true)
-# Rdeux[o]&lt;-1-compare_proba_L2[o]^2
-# compare_proba_L1[o]=sum(abs(df_proba_simplex_nl))
-# goodness_of_fit[o] &lt;-sum(df_proba_simplex_square_nl/proba_true)
-# divergence[o] &lt;- t(proba_true)%*%log(r_proba_simplex_nl)
-# Eta_computed_with_simplex_nl = Mom%*%proba_simplex_nl
-# compare_eta_minxent[o] = norm(Eta-Eta_computed_with_simplex_nl)/norm(Eta)
+
+# calcul des critères pour la solution obtenue avec le simplexe dont certaines valeurs sont non nulles
+o&lt;-o+1
+chi2 &lt;- chisq.test(nagents*proba_true, proba_simplex_nl)</code></pre>
+<pre><code>## Warning in chisq.test(nagents * proba_true, proba_simplex_nl): Chi-squared
+## approximation may be incorrect</code></pre>
+<pre class="r"><code>r_proba_simplex_nl &lt;- proba_true/proba_simplex_nl
+df_proba_simplex_nl &lt;- proba_simplex_nl-proba_true
+df_proba_simplex_square_nl &lt;- df_proba_simplex_nl*df_proba_simplex_nl
+dfr_proba_simplex_nl &lt;- r_proba_simplex_nl - 1
+p_value[o]  &lt;- chi2$p.value
+mape[o]&lt;-mean(abs(df_proba_simplex_nl)/proba_simplex_nl)
+compare_proba_L2[o]&lt;-norm(df_proba_simplex_nl)/norm(proba_true)
+Rdeux[o]&lt;-1-compare_proba_L2[o]^2
+compare_proba_L1[o]=sum(abs(df_proba_simplex_nl))
+goodness_of_fit[o] &lt;-sum(df_proba_simplex_square_nl/proba_simplex_nl)
+divergence[o] &lt;- t(proba_true)%*%log(r_proba_simplex_nl)
+Eta_computed_with_simplex_nl = Mom%*%proba_simplex_nl
+compare_eta_minxent[o] = norm(Eta-Eta_computed_with_simplex_nl)/norm(Eta)
 
 
 
@@ -1245,23 +1259,23 @@ compare_eta_minxent[o] = norm(Eta-Eta_computed_with_simplex)/norm(Eta)
 
 # affichage des différents critères
 print(duration)</code></pre>
-<pre><code>## Time difference of 9.72699 mins</code></pre>
+<pre><code>## Time difference of 9.74073 mins</code></pre>
 <pre class="r"><code>print(p_value, digits=2)</code></pre>
-<pre><code>## [1] 0 0</code></pre>
+<pre><code>## [1] 0 0 0</code></pre>
 <pre class="r"><code>print(mape, digits=4)</code></pre>
-<pre><code>## [1] 1.210 7.283</code></pre>
+<pre><code>## [1]  1.210  7.283 34.877</code></pre>
 <pre class="r"><code>print(Rdeux, digits=4)</code></pre>
-<pre><code>## [1]  0.98447 -0.05983</code></pre>
+<pre><code>## [1]  0.98447 -0.05983 -0.04162</code></pre>
 <pre class="r"><code>print(compare_proba_L2,digits=2)</code></pre>
-<pre><code>## [1] 0.12 1.03</code></pre>
+<pre><code>## [1] 0.12 1.03 1.02</code></pre>
 <pre class="r"><code>print(compare_proba_L1,digits=2)</code></pre>
-<pre><code>## [1] 0.12 1.03</code></pre>
+<pre><code>## [1] 0.12 1.03 1.02</code></pre>
 <pre class="r"><code>print(goodness_of_fit,digits=8)</code></pre>
-<pre><code>## [1]  1.2122287 90.5450335</code></pre>
+<pre><code>## [1]   0.055619404           Inf 393.954172622</code></pre>
 <pre class="r"><code>print(divergence,digits=2)</code></pre>
-<pre><code>## [1] 0.028   Inf</code></pre>
+<pre><code>## [1] 0.028   Inf 2.563</code></pre>
 <pre class="r"><code>print(compare_eta_minxent,digits=2)</code></pre>
-<pre><code>## [1] 0.0057 0.0867</code></pre>
+<pre><code>## [1] 0.0057 0.0867 0.0908</code></pre>
 </div>
 <div id="analyse-des-résultats" class="section level2">
 <h2>Analyse des résultats</h2>
