@@ -751,8 +751,11 @@ length(proba_jointes2[,"proba"])
 p_init=rep(as.double(1/n_variable_of_interest), n_variable_of_interest)
 
 proba_true <- matrix(proba_jointes2[,"proba"],ncol = 1)
+
 iteration_to_analyse <- c(100,200,300,500,750,1000,1500,2000,3000, 5000)
 iteration_to_analyse <- c(5000)
+
+nagents=nrow(pop_synt_men)
 goodness_of_fit <- rep(-1,length(iteration_to_analyse)+1)
 p_value<-rep(-1,length(iteration_to_analyse)+1)
 mape <- rep(-1,length(iteration_to_analyse)+1)
@@ -769,7 +772,7 @@ for (iteration_max in iteration_to_analyse) {
   endTime <- Sys.time()
   duration<-endTime-startTime
   probability_estimate <- matrix(Sortie$Estimates,ncol=1,nrow=length(Sortie$Estimates))
-  chi2 <- chisq.test(proba_true, probability_estimate)
+  chi2 <- chisq.test(nagents*proba_true, p=probability_estimate, rescale.p = TRUE)
   r_proba <- proba_true/probability_estimate
   df_proba <- probability_estimate-proba_true
   df_proba_square <- df_proba*df_proba
@@ -791,7 +794,7 @@ for (iteration_max in iteration_to_analyse) {
 # calcul des critères pour la solution obtenue avec le simplexe
 proba_simplex <-  matrix(result$soln[1:mc], ncol=1)
 o<-o+1
-chi2 <- chisq.test(proba_true, proba_simplex)
+chi2 <- chisq.test(nagents*proba_true, p=proba_simplex, rescale.p=TRUE)
 r_proba_simplex <- proba_true/proba_simplex
 df_proba_simplex <- proba_simplex-proba_true
 df_proba_simplex_square <- df_proba_simplex*df_proba_simplex
