@@ -12,6 +12,9 @@ output: html_document
 
 
 # Resumé
+Bogue trouvé le 7 janvier 2023
+Attention il y a une erreur dans le script car nous essayons de deviner les probabilités des modalités croisées non nulles alors qu'il faut aussi regarder les probabilités nulles !!!
+C'est ennuyeux pour le codage car celui-ci part des fichiers de données avec les noms des modalités croisés. Cela va demander au moins 3 jours de travail pour corriger ce bogue. par alleurs, on va passer de 1700 probabilités à trouver à 2000... J'espère que cela va passer en terme d'optimization. Les résultats seront forcément moins bon avec des difficultés sur les critères qui comprend des zéros....
 
 Ce R markdown  est un des fichiers qui supporte l'article overleaf Article_Epop2_methodo_enriched_syntpop_by_aggregate_data_by_entropy_optimisation
 Ce script utilise le fichier de données fourni par Fabrice Boyam Yaméogo (courriel du 1er septembre 2022) pour traiter et filtrer les données.
